@@ -9,17 +9,17 @@ number:
 date:
 consensus: true
 v: 3
-area: AREA
-workgroup: CFRG
+area: "IRTF"
+workgroup: "Crypto Forum"
 keyword:
  - threshold secret sharing
 venue:
-  group: WG
-  type: Working Group
-  mail: WG@example.com
-  arch: https://example.com/WG
-  github: USER/REPO
-  latest: https://example.com/LATEST
+  group: "Crypto Forum"
+  type: "Research Group"
+  mail: "cfrg@ietf.org"
+  arch: "https://mailarchive.ietf.org/arch/search/?email_list=cfrg"
+  github: "chris-wood/draft-wood-cfrg-threshold-secret-sharing"
+  latest: "https://chris-wood.github.io/draft-wood-cfrg-threshold-secret-sharing/draft-wood-cfrg-threshold-secret-sharing.html"
 
 author:
  -
