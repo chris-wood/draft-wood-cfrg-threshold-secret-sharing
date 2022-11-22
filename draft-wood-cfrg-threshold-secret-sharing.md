@@ -126,7 +126,7 @@ the field functions defined in {{dep-field}} is as follows.
   the Scalar value.
 - DeserializeScalar(buf): Implemented by attempting to deserialize a Scalar from a
   big-endian 8-byte string. This function can fail if the input does not
-  represent a Scalar in the range \[0, MODULUS - 1\]. 
+  represent a Scalar in the range \[0, MODULUS - 1\].
 
 ### Field F128
 
@@ -140,7 +140,7 @@ the field functions defined in {{dep-field}} is as follows.
   the Scalar value.
 - DeserializeScalar(buf): Implemented by attempting to deserialize a Scalar from a
   big-endian 16-byte string. This function can fail if the input does not
-  represent a Scalar in the range \[0, MODULUS - 1\]. 
+  represent a Scalar in the range \[0, MODULUS - 1\].
 
 ### Field F255
 
