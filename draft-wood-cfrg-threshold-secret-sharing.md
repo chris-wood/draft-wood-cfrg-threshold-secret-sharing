@@ -187,10 +187,10 @@ This named group is implemented as follows.
 
 - Order(): Return 2^252 + 27742317777372353535851937790883648493 (see {{RISTRETTO}})
 - Identity(): As defined in {{RISTRETTO}}.
-- SerializeElement(A): Implemented using the 'Encode' function from {{!RISTRETTO}}.
+- SerializeElement(A): Implemented using the 'Encode' function from {{RISTRETTO}}.
   Additionally, this function validates that the input element is not the group
   identity element.
-- DeserializeElement(buf): Implemented using the 'Decode' function from {{!RISTRETTO}}.
+- DeserializeElement(buf): Implemented using the 'Decode' function from {{RISTRETTO}}.
   Additionally, this function validates that the resulting element is not the group
   identity element.
 
@@ -437,7 +437,7 @@ def Recover(k, share_set):
 
   points = []
   for share in share_set:
-    if VerifyShare(share) == 0: 
+    if VerifyShare(share) == 0:
       raise "invalid share"
     x = G.DeserializeScalar(share[0:Nscalar])
     y = G.DeserializeScalar(share[Nscalar:2*Nscalar])
@@ -466,7 +466,7 @@ def Verify(share):
   x = G.DeserializeScalar(share[0:Nscalar])
   y = G.DeserializeScalar(share[Nscalar:2*Nscalar])
   commitment = share[2*Nscalar:]
-  
+
   S' = G.ScalarBaseMult(y)
   if len(commitment) % Nelement != 0:
     raise "invalid commitment length"
