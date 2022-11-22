@@ -119,7 +119,7 @@ Each field `F` also has the following encoding and decoding functions:
 This named field uses MODULUS=2^32 * 4294967295 + 1 with Nscalar=8. The implementation of
 the field functions defined in {{dep-field}} is as follows.
 
-- HashToScalar(x, ctx): Implemented as hash_to_field(m, 1) from {{!HASH-TO-CURVE, Section 5.2}}
+- HashToScalar(x, ctx): Implemented as hash_to_field(m, 1) from {{HASH-TO-CURVE, Section 5.2}}
   using `expand_message_xmd` with SHA-256 with parameters DST = "F128" || ctx,
   F set to the scalar field, p set to `MODULUS`, m = 1, and L = TBD.
 - SerializeScalar(s): Implemented by outputting the big-endian 8-byte encoding of
@@ -133,7 +133,7 @@ the field functions defined in {{dep-field}} is as follows.
 This named field uses MODULUS=2^66 * 4611686018427387897 + 1 with Nscalar=16. The implementation of
 the field functions defined in {{dep-field}} is as follows.
 
-- HashToScalar(x, ctx): Implemented as hash_to_field(m, 1) from {{!HASH-TO-CURVE, Section 5.2}}
+- HashToScalar(x, ctx): Implemented as hash_to_field(m, 1) from {{HASH-TO-CURVE, Section 5.2}}
   using `expand_message_xmd` with SHA-256 with parameters DST = "F128" || ctx,
   F set to the scalar field, p set to `MODULUS`, m = 1, and L = TBD.
 - SerializeScalar(s): Implemented by outputting the big-endian 16-byte encoding of
@@ -148,7 +148,7 @@ This named field uses MODULUS=2^255 - 19 with Nscalar=32. The implementation of
 the field functions defined in {{dep-field}} is as follows.
 
 - HashToScalar(x, ctx): Implemented by computing SHA-512("F255" \|\| DST \|\| x) and mapping the
-  output to a Scalar as described in {{!RISTRETTO, Section 4.4}}.
+  output to a Scalar as described in {{RISTRETTO, Section 4.4}}.
 - SerializeScalar(s): Implemented by outputting the little-endian 32-byte encoding of
   the Scalar value with the top three bits set to zero.
 - DeserializeScalar(buf): Implemented by attempting to deserialize a Scalar from a
