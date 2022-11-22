@@ -30,6 +30,8 @@ author:
 normative:
 
 informative:
+  HASH-TO-CURVE: I-D.irtf-cfrg-hash-to-curve
+  RISTRETTO: I-D.irtf-cfrg-ristretto255-decaf448
 
 
 --- abstract
@@ -52,9 +54,9 @@ can be efficiently recombined by an aggregator to recover a shared secret.
 
 The original threshold secret sharing scheme is due to Shamir {{?ShamirSecretSharing=DOI.10.1145/359168.359176}}.
 However, many variations exist with different properties. For example, some
-secret sharing schemes can be verifiable {{CITE FELDMAN}}, which allows an aggregator to check
+secret sharing schemes can be verifiable {{?Feldman=DOI.10.1109/SFCS.1987.4}}, which allows an aggregator to check
 that the share is valid. Other schemes allow metadata to be associated with
-a secret share and authenticated during secret recovery {{CITE ADSS}}.
+a secret share and authenticated during secret recovery {{?ADSS=DOI.10.2478/popets-2020-0082}}.
 
 This document specifies a simple abstraction for threshold secret sharing
 with two different modes: unverifiable and verifiable. We denote TSS and VTSS
@@ -177,8 +179,7 @@ We now detail a number of member functions that can be invoked on `G`.
 - DeserializeElement(buf): Attempts to map a byte array `buf` to an `Element` `A`,
   and fails if the input is not the valid canonical byte representation of an element of
   the group. This function can raise an error if deserialization fails
-  or `A` is the identity element of the group; see {{ciphersuites}} for group-specific
-  input validation steps.
+  or `A` is the identity element of the group.
 
 ### Group Ristretto255
 
