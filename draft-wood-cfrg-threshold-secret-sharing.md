@@ -100,10 +100,10 @@ We refer to an element of the field as a Scalar. As a field, each Scalar support
 arithmetic operations, including multiplication, addition, subtraction, and division. Finite
 fields are commonly implemented over the integers modulo a prime p, defined as the `MODULUS`.
 Each field also has an associated parameter called `Nscalar`, which is the number of
-bytes used to encode a field element as a byte string. 
+bytes used to encode a field element as a byte string.
 
 For convenience, each field has an associated function called `RandomScalar` that
-is used to sample a uniformly random Scalar from the field. Refer to {{random-scalar}} 
+is used to sample a uniformly random Scalar from the field. Refer to {{random-scalar}}
 for implementation guidance.
 
 Each field `F` also has the following encoding and decoding functions:
@@ -197,7 +197,7 @@ This named group is implemented as follows.
 # Helper Functions {#helpers}
 
 This section describes operations on and associated with polynomials over Scalars
-that are used for secret sharing. A polynomial of maximum degree t+1 is represented 
+that are used for secret sharing. A polynomial of maximum degree t+1 is represented
 as a list of t coefficients, where the constant term of the polynomial
 is in the first position and the highest-degree coefficient is in the last position.
 A point on the polynomial is a tuple (x, y), where `y = f(x)`. For notational
@@ -207,7 +207,7 @@ point p as `p.x` and `p.y`, respectively.
 ## Polynomial coefficient derivation
 
 This section describes a method for deriving a polynomial coefficients based on a secret value
-and randomness as input. The function is implicitly parameterized by a field F. 
+and randomness as input. The function is implicitly parameterized by a field F.
 
 ~~~
   poylnomial_coefficients(zero_coefficient, coefficient_rand, t):
@@ -301,14 +301,14 @@ can be combined to recover the shared secret. The splitting phase is shown below
 
 ~~~
    Secret
-     |      
+     |
 +----V----+------> Share 1, Share 2, ...
 |  Split  |
 +----^----+------> Shared Secret
-     |      
- Randomness 
+     |
+ Randomness
 ~~~
-{: #overall-flow title="TSS splitting procedure"}
+{: #split-procedure title="TSS splitting procedure"}
 
 Secret recover involves the combination of at least the threshold number of secret shares
 to produce the shared secret derived from the splitting phase. This is shown below.
@@ -316,22 +316,22 @@ to produce the shared secret derived from the splitting phase. This is shown bel
 ~~~
   Share 1   Share 2   ..   Share t
      |          |             |
-     |          |             +--->+-----------+  
+     |          |             +--->+-----------+
      |          +----------------->|  Recover  +--> Shared Secret
-     +---------------------------->+-----------+  
+     +---------------------------->+-----------+
 ~~~
-{: #overall-flow title="TSS recover procedure"}
+{: #recover-procedure title="TSS recover procedure"}
 
 The syntax of the splitting and recover phases in the TSS scheme is below:
 
 - SplitAt(k, secret, rand, x): Produce a `k`-threshold share of `secret` using randomness `rand` for the
   target Scalar x, as well as an encoding of the shared secret. The value `k` is an integer, `secret`
   and `rand` are byte strings, and `x` is a Scalar.
-- RandomSplit(k, secret, rand): Produce a random `k`-threshold share of `secret` using randomness `rand`, 
+- RandomSplit(k, secret, rand): Produce a random `k`-threshold share of `secret` using randomness `rand`,
   as well as an encoding of the shared secret. The share is a `Nshare`-byte string, and the shared
   secret is a `Nsecret`-byte string. The value `k` is an integer, and `secret`  and `rand` are byte strings.
 - Recover(k, share_set): Combine the secret shares in `share_set`, which is of size at least
-  `k`, and recover the shared secret output from the corresponding RandomShare or Share function. 
+  `k`, and recover the shared secret output from the corresponding RandomShare or Share function.
   If recovery fails, this function returns an error.
 
 In the rest of this section, we describe how to implement these functions for the TSS scheme.
@@ -379,22 +379,22 @@ def Recover(k, share_set):
 An verifiable threshold secret sharing scheme, denoted VTSS, is similar to a TSS scheme
 but with the additional property that each share can be verified for consistency with the
 underlying secret. This property lets the aggregator check that the share is correct.
-Like the TSS scheme, a VTSS scheme consists of three phases: secret splitting, run by clients, 
+Like the TSS scheme, a VTSS scheme consists of three phases: secret splitting, run by clients,
 share verification, run by aggregators, and secret recovery, run by aggregators. Secret
 splitting and recovery are as described in {{tss}}. Share verification takes as input a share
 and decides whether or not the share is valid, as shown below.
 
 ~~~
    Share
-     |      
+     |
 +----V---+
 | Verify |
 +----+---+
-     |      
+     |
      V
    Valid?
 ~~~
-{: #overall-flow title="VTSS verifiation procedure"}
+{: #verification-procedure title="VTSS verifiation procedure"}
 
 VTSS extends the syntax of a TSS scheme with a new function that supports share verification,
 described below:
