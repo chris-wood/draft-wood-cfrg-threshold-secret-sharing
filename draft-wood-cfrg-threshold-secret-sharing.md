@@ -208,7 +208,7 @@ We now detail a number of member functions that can be invoked on `G`.
 
 This named group has prime order 2^252 + 27742317777372353535851937790883648493 (see {{RISTRETTO}}), using
 FCurve25519 as the underlying scalar finite field. The implementation of the group functions defined
-in {{dep-group}} is as follows.
+in {{dep-pog}} is as follows.
 
 - Identity(): As defined in {{RISTRETTO}}.
 - SerializeElement(A): Implemented using the 'Encode' function from {{RISTRETTO}}.
