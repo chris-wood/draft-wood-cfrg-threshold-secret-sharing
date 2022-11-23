@@ -1,4 +1,4 @@
-TESTVECTORS := "TSS-F64.json" "TSS-F128.json" "TSS-F255.json"
+TESTVECTORS := "TSS-F64.json" "TSS-F128.json" "TSS-F255.json" "VTSS-Ristretto255.json"
 FORMATTEDVECTORS := "test-vectors.txt"
 SAGEFILES := $(basename $(notdir $(wildcard *.sage)))
 PYFILES := $(addprefix sagelib/, $(addsuffix .py,$(SAGEFILES)))
@@ -18,6 +18,7 @@ sagelib/%.py: %.sage
 
 test: pyfiles
 	@sage tss.sage
+	@sage vtss.sage
 
 vectors: test 
 	@python3 format_test_vectors.py $(TESTVECTORS) > $(FORMATTEDVECTORS)

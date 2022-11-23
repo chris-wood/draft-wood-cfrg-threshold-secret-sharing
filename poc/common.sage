@@ -47,3 +47,17 @@ def OS2IP(octets, skip_assert=False):
     if not skip_assert:
         assert octets == I2OSP(ret, len(octets))
     return ret
+
+as_bytes = lambda x: x if isinstance(x, bytes) else bytes(x, "utf-8")
+
+def to_hex(byte_string):
+    if isinstance(byte_string, str):
+        return "".join("{:02x}".format(ord(c)) for c in byte_string)
+    if isinstance(byte_string, bytes):
+        return "" + "".join("{:02x}".format(c) for c in byte_string)
+    assert isinstance(byte_string, bytearray)
+    return ''.join(format(x, '02x') for x in byte_string)
+
+
+def random_bytes(n):
+    return os.urandom(n)

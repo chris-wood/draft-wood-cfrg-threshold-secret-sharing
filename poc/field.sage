@@ -184,6 +184,36 @@ class Field255(Field):
 
     @classmethod
     def hash_to_scalar(cls, msg, dst=""):
-        hash_input = _as_bytes("F255" + dst) + msg
+        hash_input = _as_bytes(_as_bytes("F255") + dst) + msg
+        return int.from_bytes(sha512(hash_input).digest(), "little") % cls.MODULUS
+
+
+# The finite (scalar) field for Curve25519
+class FieldCurve25519(Field):
+    MODULUS = 7237005577332262213973186563042994240857116359379907606001950938285454250989 # 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
+    SCALAR_SIZE = 32
+
+    # Operational parameters
+    gf = GF(MODULUS)
+
+    @classmethod
+    def name(cls):
+        return "Curve255"
+
+    @classmethod
+    def random_scalar(cls):
+        return random.randint(0, cls.MODULUS - 1)
+
+    @classmethod
+    def serialize_scalar(cls, scalar):
+        return I2OSP(scalar % cls.MODULUS, cls.SCALAR_SIZE)[::-1]
+
+    @classmethod
+    def deserialize_scalar(cls, scalar):
+        return int.from_bytes(scalar, "little") % cls.MODULUS
+
+    @classmethod
+    def hash_to_scalar(cls, msg, dst=""):
+        hash_input = _as_bytes(_as_bytes("F255") + dst) + msg
         return int.from_bytes(sha512(hash_input).digest(), "little") % cls.MODULUS
 
