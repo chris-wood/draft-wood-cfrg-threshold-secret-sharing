@@ -4,11 +4,9 @@
 import os
 import sys
 
-from hash_to_field import I2OSP
-
 try:
     from sagelib.field import Field64, Field128, Field255
-    from sagelib.groups import GroupRistretto255
+    from sagelib.common import I2OSP
 except ImportError as e:
     sys.exit("Error loading preprocessed sage files. Try running `make setup && make clean pyfiles`. Full error: " + e)
 
@@ -26,7 +24,6 @@ def to_hex(byte_string):
 def random_bytes(n):
     return os.urandom(n)
 
-# TODO
 def derive_lagrange_coefficient(F, i, L):
     assert(i != 0)
     for j in L:
@@ -47,7 +44,6 @@ def derive_lagrange_coefficient(F, i, L):
     L_i = (num * inverse_mod(den, F.MODULUS)) % F.MODULUS
     return L_i
 
-# TODO
 def polynomial_evaluate(F, x, coeffs):
     value = 0
     for coeff in reversed(coeffs):
@@ -55,7 +51,21 @@ def polynomial_evaluate(F, x, coeffs):
         value = (value + coeff) % F.MODULUS
     return value
 
-# TODO
+def poylnomial_coefficient(F, r, index):
+    return F.hash_to_scalar(r + I2OSP(index, 1))
+
+def poylnomial_coefficients(F, s, r, t):
+    if t < 2:
+        raise Exception("invalid parameters")
+
+    # Construct the polynomial from the random seed and threshold count
+    polynomial_coefficients = [poylnomial_coefficient(F, s, 0)]
+    for i in range(t - 1):
+        coefficient = poylnomial_coefficient(F, r, i+1)
+        polynomial_coefficients.append(coefficient)
+    
+    return polynomial_coefficients
+
 def recover(F, t, share_set):
     def polynomial_interpolation(points):
         L = [x for (x, _) in points]
@@ -76,22 +86,6 @@ def recover(F, t, share_set):
     s = polynomial_interpolation(points[:t])
     return F.serialize_scalar(s)
 
-def poylnomial_coefficient(F, r, index):
-    return F.hash_to_scalar(r + I2OSP(index, 1))
-
-def poylnomial_coefficients(F, s, r, t):
-    if t < 2:
-        raise Exception("invalid parameters")
-
-    # Construct the polynomial from the random seed and threshold count
-    polynomial_coefficients = [poylnomial_coefficient(F, s, 0)]
-    for i in range(t - 1):
-        coefficient = poylnomial_coefficient(F, r, i+1)
-        polynomial_coefficients.append(coefficient)
-    
-    return polynomial_coefficients
-
-# TODO
 def split_at(F, s, r, t, x):
     if t < 2:
         raise Exception("invalid parameters")
@@ -103,11 +97,11 @@ def split_at(F, s, r, t, x):
     x_enc = F.serialize_scalar(x)
     y_enc = F.serialize_scalar(y)
 
-    shared_secret = F.serialize_scalar(poylnomial_coefficient(F, s, 0)) # TODO(caw): return this from poly_coefficients?
+    # TODO(caw): return this from poly_coefficients?
+    shared_secret = F.serialize_scalar(poylnomial_coefficient(F, s, 0))
     
     return x_enc + y_enc, shared_secret
 
-# TODO
 def random_split(F, s, r, t):
     if t < 2:
         raise Exception("invalid parameters")

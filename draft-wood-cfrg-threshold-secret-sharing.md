@@ -70,9 +70,7 @@ The following notation is used throughout the document.
 
 * `random_bytes(n)`: Outputs `n` bytes, sampled uniformly at random
 using a cryptographically secure pseudorandom number generator (CSPRNG).
-* `count(i, L)`: Outputs the number of times the element `i` is represented in the list `L`.
 * `len(l)`: Outputs the length of input list `l`, e.g., `len([1,2,3]) = 3)`.
-* `reverse(l)`: Outputs the list `l` in reverse order, e.g., `reverse([1,2,3]) = [3,2,1]`.
 * `range(a, b)`: Outputs a list of integers from `a` to `b-1` in ascending order, e.g., `range(1, 4) = [1,2,3]`.
 * `pow(a, b)`: Outputs the integer result of `a` to the power of `b`, e.g., `pow(2, 3) = 8`.
 * `str(x)`: Outputs an ASCII string encoding of the integer input `x`, e.g., `str(1) = "1"`.
@@ -99,7 +97,7 @@ A finite field `F` is a field of finite size, where the size is referred to as t
 We refer to an element of the field as a Scalar. As a field, each Scalar supports normal
 arithmetic operations, including multiplication, addition, subtraction, and division. Finite
 fields are commonly implemented over the integers modulo a prime p, defined as the `MODULUS`.
-Each field also has an associated parameter called `Nscalar`, which is the number of
+Each field also has an associated parameter called `SCALAR_SIZE`, which is the number of
 bytes used to encode a field element as a byte string.
 
 For convenience, each field has an associated function called `RandomScalar` that
@@ -110,13 +108,13 @@ Each field `F` also has the following encoding and decoding functions:
 
 - HashToScalar(x, ctx): Deterministically maps input `x` to a Scalar element using the domain
   separation tag `ctx`.
-- SerializeScalar(s): Maps a Scalar `s` to a canonical byte array `buf` of fixed length `Nscalar`.
+- SerializeScalar(s): Maps a Scalar `s` to a canonical byte array `buf` of fixed length `SCALAR_SIZE`.
 - DeserializeScalar(buf): Attempts to map a byte array `buf` to a `Scalar` `s`.
   This function can raise an error if deserialization fails.
 
 ### Field F64
 
-This named field uses MODULUS=2^32 * 4294967295 + 1 with Nscalar=8. The implementation of
+This named field uses MODULUS=2^32 * 4294967295 + 1 with SCALAR_SIZE=8. The implementation of
 the field functions defined in {{dep-field}} is as follows.
 
 - HashToScalar(x, ctx): Implemented as hash_to_field(m, 1) from {{HASH-TO-CURVE, Section 5.2}}
@@ -130,7 +128,7 @@ the field functions defined in {{dep-field}} is as follows.
 
 ### Field F128
 
-This named field uses MODULUS=2^66 * 4611686018427387897 + 1 with Nscalar=16. The implementation of
+This named field uses MODULUS=2^66 * 4611686018427387897 + 1 with SCALAR_SIZE=16. The implementation of
 the field functions defined in {{dep-field}} is as follows.
 
 - HashToScalar(x, ctx): Implemented as hash_to_field(m, 1) from {{HASH-TO-CURVE, Section 5.2}}
@@ -144,7 +142,7 @@ the field functions defined in {{dep-field}} is as follows.
 
 ### Field F255
 
-This named field uses MODULUS=2^255 - 19 with Nscalar=32. The implementation of
+This named field uses MODULUS=2^255 - 19 with SCALAR_SIZE=32. The implementation of
 the field functions defined in {{dep-field}} is as follows.
 
 - HashToScalar(x, ctx): Implemented by computing SHA-512("F255" \|\| DST \|\| x) and mapping the
@@ -222,20 +220,23 @@ This section describes a method for deriving a polynomial coefficients based on 
 and randomness as input. The function is implicitly parameterized by a field F.
 
 ~~~
-  poylnomial_coefficients(zero_coefficient, coefficient_rand, t):
+  poylnomial_coefficients(zero_coefficient, coefficient_rand, threshold):
 
   Inputs:
   - zero_coefficient, secret value for the 0-th coefficient
   - coefficient_rand, randomness for deriving the remaining coefficients
-  - t, the number of coefficients to derive
+  - threshold, the number of coefficients to derive
 
-  Outputs: A list of coefficients representing the polynomial, starting from 0 in increasing order
+  Outputs: 
+  - base, the encoded secret associated with the polynomial
+  - poly, a list of coefficients representing the polynomial, starting from 0 in increasing order
 
   def poylnomial_coefficients(zero_coefficient, coefficient_rand, t):
-    poly = [F.HashToScalar(zero_coefficient, str(t) || "-" || str(0))]
+    base = F.HashToScalar(zero_coefficient, str(t) || "-" || str(0))
+    poly = [base]
     for i in range(1, t):
       poly.extend(F.HashToScalar(rand, str(t) || "-" || str(i)))
-    return poly
+    return F.SerialieScalar(base), poly
 ~~~
 
 ## Evaluation of a polynomial
@@ -354,9 +355,9 @@ A TSS scheme is parameterzed by a field F that implements the abstraction descri
 Using F, the RandomSplit, SplitAt, and Recover functions are implemented as follows.
 
 ~~~~~
-def SplitAt(k, secret, rand, x):
+def SplitAt(threshold, secret, rand, x):
   # Construct the secret sharing polynomial
-  poly = poylnomial_coefficients(secret, rand, k)
+  base, poly = poylnomial_coefficients(secret, rand, threshold)
 
   # Evaluate the polynomial at the desired point
   y = polynomial_evaluate(x, poly)
@@ -366,24 +367,25 @@ def SplitAt(k, secret, rand, x):
   y_enc = G.SerializeScalar(y)
   share = x_enc || y_enc
 
-  return share
+  return base, share
 
 def RandomSplit(k, secret, rand):
   x = F.RandomScalar()
   return SplitAt(k, secret, rand, x)
 
-def Recover(k, share_set):
-  if share_set.length < k:
+def Recover(threshold, share_set):
+  if share_set.length < threshold:
     raise RecoveryFailedError
 
   points = []
   for share in share_set:
-    x = F.DeserializeScalar(share[0:Nscalar])
-    y = F.DeserializeScalar(share[Nscalar:])
+    x = F.DeserializeScalar(share[0:SCALAR_SIZE])
+    y = F.DeserializeScalar(share[SCALAR_SIZE:])
     points.append((x, y))
 
   poly = polynomial_interpolation(points)
-  return poly[0]
+  base = poly[0]
+  return F.SerializeScalar(base)
 ~~~~~
 
 # Verifiable Threshold Secret Sharing {#vtss}
@@ -451,8 +453,8 @@ def Recover(k, share_set):
   for share in share_set:
     if VerifyShare(share) == 0:
       raise "invalid share"
-    x = G.DeserializeScalar(share[0:Nscalar])
-    y = G.DeserializeScalar(share[Nscalar:2*Nscalar])
+    x = G.DeserializeScalar(share[0:SCALAR_SIZE])
+    y = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
     points.append((x, y))
 
   poly = polynomial_interpolation(points)
@@ -475,9 +477,9 @@ Finally, VerifyShare is implemented as follows.
 
 ~~~~~
 def Verify(share):
-  x = G.DeserializeScalar(share[0:Nscalar])
-  y = G.DeserializeScalar(share[Nscalar:2*Nscalar])
-  commitment = share[2*Nscalar:]
+  x = G.DeserializeScalar(share[0:SCALAR_SIZE])
+  y = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
+  commitment = share[2*SCALAR_SIZE:]
 
   S' = G.ScalarBaseMult(y)
   if len(commitment) % Nelement != 0:
