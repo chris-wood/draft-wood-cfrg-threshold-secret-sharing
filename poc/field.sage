@@ -101,6 +101,10 @@ class Field64(Field):
     gf = GF(MODULUS)
 
     @classmethod
+    def name(cls):
+        return "F64"
+
+    @classmethod
     def random_scalar(cls):
         return random.randint(0, cls.MODULUS - 1)
 
@@ -131,6 +135,10 @@ class Field128(Field):
     gf = GF(MODULUS)
 
     @classmethod
+    def name(cls):
+        return "F128"
+
+    @classmethod
     def random_scalar(cls):
         return random.randint(0, cls.MODULUS - 1)
 
@@ -157,6 +165,10 @@ class Field255(Field):
 
     # Operational parameters
     gf = GF(MODULUS)
+
+    @classmethod
+    def name(cls):
+        return "F255"
 
     @classmethod
     def random_scalar(cls):

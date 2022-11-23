@@ -3,6 +3,7 @@
 
 import os
 import sys
+import json
 
 try:
     from sagelib.field import Field64, Field128, Field255
@@ -131,28 +132,40 @@ def random_split(F, s, r, t):
 #     return SK_i_prime == SK_i
 
 # Configure the setting
-N = 3
-T = 2
+num_shares = 3
+k = 2
 secret = _as_bytes("secret")
-rand = _as_bytes("rand")
+randomness = random_bytes(32)
 
 ciphersuites = [
     ("TSS-F64", "TSS-F64", Field64),
-    ("TSS-F64", "TSS-F64", Field128),
-    ("TSS-F64", "TSS-F64", Field255),
+    ("TSS-F128", "TSS-F128", Field128),
+    ("TSS-F255", "TSS-F255", Field255),
 ]
 for (fname, name, F) in ciphersuites:
-    assert(T > 1)
-    assert(T <= N)
+    assert(k > 1)
+    assert(k <= num_shares)
 
     shares = []
     secrets = []
-    for i in range(T):
-        share, shared_secret = random_split(F, secret, rand, T)
+    for i in range(num_shares):
+        share, shared_secret = random_split(F, secret, randomness, k)
         if len(secrets) > 0:
             assert(str(shared_secret) == str(secrets[0]))
         shares.append(share)
         secrets.append(shared_secret)
         
-    shared_secret = recover(F, T, shares)
+    shared_secret = recover(F, k, shares)
     assert(shared_secret == secrets[-1])
+
+    vector = {
+        "name": name,
+        "k": str(k),
+        "secret": to_hex(secret),
+        "randomness": to_hex(randomness),
+        "shares": [to_hex(share) for share in shares],
+        "shared_secret": to_hex(shared_secret),
+    }
+
+    with open(fname + ".json", "w") as fh:
+        fh.write(str(json.dumps(vector, indent=2)))

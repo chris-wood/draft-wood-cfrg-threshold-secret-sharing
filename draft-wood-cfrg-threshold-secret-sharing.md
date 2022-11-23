@@ -313,13 +313,10 @@ randomness, and a threshold, and uses it to produce a shared secret and one or m
 can be combined to recover the shared secret. The splitting phase is shown below.
 
 ~~~
-   Secret
-     |
-+----V----+------> Share 1, Share 2, ...
-|  Split  |
-+----^----+------> Shared Secret
-     |
- Randomness
+             +---------+
+   Secret --->   TSS   +-----> Share 1, Share 2, ...
+Randomness -->  Split  +-----> Shared secret
+             +---------+
 ~~~
 {: #split-procedure title="TSS splitting procedure"}
 
@@ -327,11 +324,12 @@ Secret recover involves the combination of at least the threshold number of secr
 to produce the shared secret derived from the splitting phase. This is shown below.
 
 ~~~
-  Share 1   Share 2   ..   Share t
-     |          |             |
-     |          |             +--->+-----------+
-     |          +----------------->|  Recover  +--> Shared Secret
-     +---------------------------->+-----------+
+Share 1   Share 2   ..   Share t
+    |          |             |
+    |          |             |    +-----------+
+    |          |             +--->|    TSS    |
+    |          +----------------->|  Recover  +--> Shared Secret
+    +---------------------------->+-----------+
 ~~~
 {: #recover-procedure title="TSS recover procedure"}
 
@@ -390,7 +388,7 @@ def Recover(threshold, share_set):
 
 # Verifiable Threshold Secret Sharing {#vtss}
 
-An verifiable threshold secret sharing scheme, denoted VTSS, is similar to a TSS scheme
+A verifiable threshold secret sharing scheme, denoted VTSS, is similar to a TSS scheme
 but with the additional property that each share can be verified for consistency with the
 underlying secret. This property lets the aggregator check that the share is correct.
 Like the TSS scheme, a VTSS scheme consists of three phases: secret splitting, run by clients,
@@ -410,17 +408,26 @@ and decides whether or not the share is valid, as shown below.
 ~~~
 {: #verification-procedure title="VTSS verifiation procedure"}
 
-VTSS extends the syntax of a TSS scheme with a new function that supports share verification,
+Each share is verified with a corresponding commitment. A VTSS scheme allows an aggregator
+to extract an encoding of the commitment from a share. This can be used, for example, to
+group shares that have matching commitment values. Note that not all VTSS schemes will
+produce secret shares with matching commitments when run on the same inputs.
+
+[[TODO: Should we specify Pedersen secret sharing here?]]
+
+VTSS extends the syntax of a TSS scheme with new functions that support share verification,
 described below:
 
 - VerifyShare(share): Output 1 if the share is valid and 0 otherwise.
+- ShareCommitment(share): Outputs a commitment corresponding to the share.
 
 The rest of this section describes how to construct a VTSS scheme.
 
 ## Construction
 
-A TSS scheme is parameterzed by a prime-order group G that implements the abstraction described in {{dep-pog}}.
-Using G, the RandomSplit, SplitAt, and Recover functions are implemented as follows.
+A VTSS scheme is parameterzed by a prime-order group G that implements the abstraction described in {{dep-pog}}.
+The VTSS scheme in this section is based on Feldman's scheme from {{Feldman}}.
+In particular, using G, the RandomSplit, SplitAt, and Recover functions are implemented as follows.
 
 ~~~~~
 def RandomShare(k, secret, rand):
@@ -473,7 +480,7 @@ def Commit(poly):
   return commitment
 ~~~~~
 
-Finally, VerifyShare is implemented as follows.
+VerifyShare is implemented as follows.
 
 ~~~~~
 def Verify(share):
@@ -494,6 +501,14 @@ def Verify(share):
   for j in range(0, num_coefficients):
     S = S + G.ScalarMult(commitments[j], pow(x, j))
   return S == S'
+~~~~~
+
+Finally, ShareCommitment is implemented as follows.
+
+~~~~~
+def ShareCommitment(share):
+  commitment = share[2*SCALAR_SIZE:]
+  return commitment
 ~~~~~
 
 # Random Scalar Generation {#random-scalar}
@@ -524,7 +539,14 @@ result. See {{Section 5 of HASH-TO-CURVE}} for the underlying derivation of `l`.
 
 # Security Considerations
 
-TODO Security
+The fundamental property of each TSS scheme is that it satisfies a notion of privacy, meaning
+that individual shares reveal nothing unless the specified threshold number of shares are combined
+to recover the secret. A VTSS scheme adds an additional property called verifiability, which allows
+the aggregator to check that each share is correct. A VTSS scheme also lets the aggregator implement
+recovery such that combination of valid shares with the same commitment succeeds with overwhelming
+probability.
+
+TODO: add more security consideration discussion
 
 # IANA Considerations
 
@@ -532,7 +554,60 @@ This document has no IANA actions.
 
 --- back
 
+# TSS Test Vectors
+
+This section contains test vectors for the TSS scheme specified in this
+document. All `Element` and `Scalar` values are represented in serialized form and
+encoded in hexadecimal strings. The secret and randomness inputs to the scheme is
+also encoded as a hexadecimal string. The threshold is an integer.
+
+## TSS-F64
+
+~~~
+k: 2
+secret: 736563726574
+randomness: 31965a715fd8e1f71cd08e0cba86095121dff231eb0ceb29a9c8d760a
+47a18a0
+shares: 1643a84854b9ba35960ed1f1554fe587,0d0d4ce1af5701c713c11c069963
+8850,c985b2c8bfb05eae1809cd70c3da5f29
+shared_secret: bb712b08c8694626
+~~~
+
+## TSS-F128
+
+~~~
+k: 2
+secret: 736563726574
+randomness: 31965a715fd8e1f71cd08e0cba86095121dff231eb0ceb29a9c8d760a
+47a18a0
+shares: 32caccef9635b3c70513b1e600f87a7b462ba936b28fb639e16d249907cb5
+4c7,e0f9454539e3b4ffaea6339c454d044030824bcdd2f3d447eb5fcbb8808682eb,
+6968a3551af142937ce86469d06360918019927e7b75e46cb7d1e1563dc07eb1
+shared_secret: 83970665868227256dff87b7512f678e
+~~~
+
+## TSS-F255
+
+~~~
+k: 2
+secret: 736563726574
+randomness: 31965a715fd8e1f71cd08e0cba86095121dff231eb0ceb29a9c8d760a
+47a18a0
+shares: 5fedc0ebd0380eb2bad985e678e906eb21ef41ff62b3f3224912986a3f1ed
+37db77e53c008deb27343dde3a17c8ee1c8c166415f505479f6d265b8115b4df436,8
+b860322d6546611a74ca9b8b1d673f8ac0a60b3a2e9d037f9d67016556bd84c9830ac
+bac779880b69b23de49ac967c199e7b324c0fb73b4e1109f097c414b68,970bc9dc08
+9d5fc7b9bbe8b272febc1a001a3d3c00d7d45c7369699796f8df0dd1a502169b00fb2
+fae71e5181d89b9df9761e2d5d1db7a18866dacc70f6c6f6a
+shared_secret: e13228987163ed149053f939d46abcaf4423079b021128685b498b
+6c9202d11f
+~~~
+
+# VTSS Test Vectors
+
+TODO
+
 # Acknowledgments
 {:numbered="false"}
 
-TODO acknowledge.
+TODO

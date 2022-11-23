@@ -1,0 +1,12 @@
+{
+  "name": "TSS-F64",
+  "k": "2",
+  "secret": "736563726574",
+  "randomness": "31965a715fd8e1f71cd08e0cba86095121dff231eb0ceb29a9c8d760a47a18a0",
+  "shares": [
+    "1643a84854b9ba35960ed1f1554fe587",
+    "0d0d4ce1af5701c713c11c0699638850",
+    "c985b2c8bfb05eae1809cd70c3da5f29"
+  ],
+  "shared_secret": "bb712b08c8694626"
+}

@@ -1,5 +1,5 @@
-# TESTVECTORS := "frost-ed25519-sha512.json" "frost-ed448-shake256.json" "frost-ristretto255-sha512.json" "frost-p256-sha256.json" "frost-secp256k1-sha256.json"
-# FORMATTEDVECTORS := "test-vectors.txt"
+TESTVECTORS := "TSS-F64.json" "TSS-F128.json" "TSS-F255.json"
+FORMATTEDVECTORS := "test-vectors.txt"
 SAGEFILES := $(basename $(notdir $(wildcard *.sage)))
 PYFILES := $(addprefix sagelib/, $(addsuffix .py,$(SAGEFILES)))
 .PRECIOUS: $(PYFILES)
@@ -19,8 +19,8 @@ sagelib/%.py: %.sage
 test: pyfiles
 	@sage tss.sage
 
-# vectors: test 
-#         @python3 format_test_vectors.py $(TESTVECTORS) > $(FORMATTEDVECTORS)
+vectors: test 
+	@python3 format_test_vectors.py $(TESTVECTORS) > $(FORMATTEDVECTORS)
 
 .PHONY: clean
 clean:
