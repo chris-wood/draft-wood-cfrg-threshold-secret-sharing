@@ -227,7 +227,7 @@ and randomness as input. The function is implicitly parameterized by a field F.
   - coefficient_rand, randomness for deriving the remaining coefficients
   - threshold, the number of coefficients to derive
 
-  Outputs: 
+  Outputs:
   - base, the encoded secret associated with the polynomial
   - poly, a list of coefficients representing the polynomial, starting from 0 in increasing order
 
