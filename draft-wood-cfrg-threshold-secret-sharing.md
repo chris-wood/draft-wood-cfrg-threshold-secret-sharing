@@ -156,31 +156,29 @@ the field functions defined in {{dep-field}} is as follows.
 
 ## Prime-Order Group {#dep-pog}
 
-FROST depends on an abelian group of prime order `p`. We represent this
-group as the object `G` that additionally defines helper functions described below. The group operation
-for `G` is addition `+` with identity element `I`. For any elements `A` and `B` of the group `G`,
-`A + B = B + A` is also a member of `G`. Also, for any `A` in `G`, there exists an element
-`-A` such that `A + (-A) = (-A) + A = I`. For convenience, we use `-` to denote
-subtraction, e.g., `A - B = A + (-B)`. Integers, taken modulo the group order `p`, are called
-scalars; arithmetic operations on scalars are implicitly performed modulo `p`. Since `p` is prime,
-scalars form a finite field. Scalar multiplication is equivalent to the repeated
-application of the group operation on an element `A` with itself `r-1` times, denoted as
-`ScalarMult(A, r)`. We denote the sum, difference, and product of two scalars using the `+`, `-`,
-and `*` operators, respectively. (Note that this means `+` may refer to group element addition or
-scalar addition, depending on types of the operands.) For any element `A`, `ScalarMult(A, p) = I`.
+A prime-order group `G` is an an abelian group of prime order `p`, denoted `ORDER`. Integers, taken modulo
+the group order `p`, form a finite field of order p.
+
+The group operation for `G` is addition `+` with identity element `I`. For any elements
+`A` and `B` of the group `G`, `A + B = B + A` is also a member of `G`. Also, for any
+`A` in `G`, there exists an element `-A` such that `A + (-A) = (-A) + A = I`. For
+convenience, we use `-` to denote subtraction, e.g., `A - B = A + (-B)`.
+We denote equality comparison as `==` and assignment of values by `=`.
+It is assumed that group element addition, negation, and equality comparisons can be
+efficiently computed for arbitrary group elements.
+
+Scalar multiplication is equivalent to the repeated application of the group operation on
+an element `A` with itself `r-1` times, denoted as `ScalarMult(A, r)`. For any element `A`, `ScalarMult(A, p) = I`.
 We denote `B` as a fixed generator of the group. Scalar base multiplication is equivalent to the repeated application
-of the group operation `B` with itself `r-1` times, this is denoted as `ScalarBaseMult(r)`. The set of
-scalars corresponds to `GF(p)`, which we refer to as the scalar field. This document uses types
-`Element` and `Scalar` to denote elements of the group `G` and its set of scalars, respectively.
-We denote Scalar(x) as the conversion of integer input `x` to the corresponding Scalar value with
-the same numeric value. For example, Scalar(1) yields a Scalar representing the value 1.
-We denote equality comparison as `==` and assignment of values by `=`. Finally, it is assumed that
-group element addition, negation, and equality comparisons can be efficiently computed for
-arbitrary group elements.
+of the group operation `B` with itself `r-1` times, this is denoted as `ScalarBaseMult(r)`.
+
+This document uses the `Element` type to denote elements of the group `G`, and `Scalar` type to
+represent elements of the corresponding finite field. We denote Scalar(x) as the conversion
+of integer input `x` to the corresponding Scalar value with the same numeric value. For example,
+Scalar(1) yields a Scalar representing the value 1.
 
 We now detail a number of member functions that can be invoked on `G`.
 
-- Order(): Outputs the order of `G` (i.e. `p`).
 - Identity(): Outputs the identity `Element` of the group (i.e. `I`).
 - ScalarMult(A, k): Output the scalar multiplication between Element `A` and Scalar `k`.
 - ScalarBaseMult(k): Output the scalar multiplication between Scalar `k` and the group generator `B`.
@@ -193,9 +191,9 @@ We now detail a number of member functions that can be invoked on `G`.
 
 ### Group Ristretto255
 
-This named group is implemented as follows.
+This named group has prime order 2^252 + 27742317777372353535851937790883648493 (see {{RISTRETTO}}).
+It is implemented as follows.
 
-- Order(): Return 2^252 + 27742317777372353535851937790883648493 (see {{RISTRETTO}})
 - Identity(): As defined in {{RISTRETTO}}.
 - SerializeElement(A): Implemented using the 'Encode' function from {{RISTRETTO}}.
   Additionally, this function validates that the input element is not the group
@@ -397,14 +395,9 @@ splitting and recovery are as described in {{tss}}. Share verification takes as 
 and decides whether or not the share is valid, as shown below.
 
 ~~~
-   Share
-     |
-+----V---+
-| Verify |
-+----+---+
-     |
-     V
-   Valid?
+        +-------------+
+Share --> VTSS Verify +---> Valid?
+        +-------------+
 ~~~
 {: #verification-procedure title="VTSS verifiation procedure"}
 
@@ -412,8 +405,6 @@ Each share is verified with a corresponding commitment. A VTSS scheme allows an 
 to extract an encoding of the commitment from a share. This can be used, for example, to
 group shares that have matching commitment values. Note that not all VTSS schemes will
 produce secret shares with matching commitments when run on the same inputs.
-
-[[TODO: Should we specify Pedersen secret sharing here?]]
 
 VTSS extends the syntax of a TSS scheme with new functions that support share verification,
 described below:
@@ -428,6 +419,8 @@ The rest of this section describes how to construct a VTSS scheme.
 A VTSS scheme is parameterzed by a prime-order group G that implements the abstraction described in {{dep-pog}}.
 The VTSS scheme in this section is based on Feldman's scheme from {{Feldman}}.
 In particular, using G, the RandomSplit, SplitAt, and Recover functions are implemented as follows.
+
+[[OPEN ISSUE: Should we specify Pedersen secret sharing here?]]
 
 ~~~~~
 def RandomShare(k, secret, rand):
