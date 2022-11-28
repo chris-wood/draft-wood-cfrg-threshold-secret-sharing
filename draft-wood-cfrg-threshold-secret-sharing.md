@@ -327,9 +327,9 @@ at x-coordinate 0, i.e., `f(0)`, given a list of `t` other x-coordinates.
     return L_i
 ~~~
 
-# Secret Sharing Schemes
+# Secret Sharing Overview
 
-In this section we describe different variants of secret sharing scheme. Each scheme
+In this section we describe different variants of secret sharing scheme. Each variant
 consists of two phases: secret splitting, run by clients, and secret recovery, run
 by aggregators. Secret splitting takes as input a secret, randomness, and a threshold,
 and uses it to produce a shared secret and one or more shares that can be combined
@@ -356,7 +356,7 @@ Share 1   Share 2   ..   Share t
 ~~~
 {: #recover-procedure title="Secret recover procedure"}
 
-Each scheme follows the same two-step pattern on the client for the splitting phase:
+Each variant follows the same two-step pattern on the client for the splitting phase:
 
 1. Set up a secret sharing context on the client.
 2. Use the context to produce one or more shares.
@@ -364,9 +364,11 @@ Each scheme follows the same two-step pattern on the client for the splitting ph
 The aggregator then runs a recovery function in the recovery phase to combine
 some threshold number of shares to produce the shared secret.
 
-Beyond the basic scheme, there are secret sharing schemes that provide authenticated
+Beyond the basic variant, there are secret sharing schemes that provide authenticated
 shares, i.e., shares that can be verified for correctness by the aggregator prior to
-aggregating. Each variant is identified by a one-byte value.
+aggregating. These variants are referred to as verifiable secret sharing schemes.
+
+Each variant is identified by a one-byte value.
 
 | Mode                     | Value |
 |:=========================|:======|
@@ -375,8 +377,12 @@ aggregating. Each variant is identified by a one-byte value.
 | mode_auth_random         | 0x02  |
 {: #hpke-modes title="Secret sharing schemes"}
 
-The rest of this section describes some core funtions used by the secret sharing
-schemes. Each of the variants are then described in {{variants}}.
+Each of the variants are then described in {{variants}}.
+
+# Core Functions
+
+This section describes some of the core functions used for building secret
+sharing variants.
 
 ## Splitter Functions
 
@@ -407,11 +413,20 @@ def Context.Split(id):
 
 For authenticated variants, the splitter context can also be used to produce commitments
 to the underlying secret. This document defines two types of commitments: random and deterministic
-commitments. Each of these functions takes as input an identifier at which the secret sharing
-polynomial was evaluated, as well as its evalutiation output, and produces a unique data
-structure for the type of commitment.
+commitments. Deterministic commitments consist of a list of Element values and can be
+produced from the context directly and do not vary based on the share produced, as described below.
 
-These two functions are implemented as follows.
+~~~~~
+def Context.DeterministicCommitment():
+  commitment = []
+  for coefficient in self.poly:
+    C_i = G.ScalarBaseMult(coefficient)
+    commitment.append(C_i)
+  return commitment
+~~~~~
+
+Random commitments require the identifier at which the secret sharing polynomial was evaluated
+and produces a tuple of values corresponding to the commitment, as described below.
 
 ~~~~~
 def Context.RandomCommitment(id):
@@ -426,13 +441,6 @@ def Context.RandomCommitment(id):
     C_i = G.Commitment(self.poly[i], inner_splitter.poly[i])
     random_commitments.append(C_i)
   return (random_value, random_commitments)
-
-def Context.DeterministicCommitment():
-  commitment = []
-  for coefficient in self.poly:
-    C_i = G.ScalarBaseMult(coefficient)
-    commitment.append(C_i)
-  return commitment
 ~~~~~
 
 Commitments can be serialized and deserialized from their unique data structures to
@@ -510,18 +518,18 @@ share commitments produced during the splitting phase. Verification is done usin
 the two following functions.
 
 ~~~~~
-def VerifyRandomCommitment(id, value, commitment):
-  random_value, random_commitments = commitment
+def VerifyRandomCommitment(id, value, random_commitment):
+  random_value, random_commitments = random_commitment
   S' = G.ScalarBaseMult(value) + G.ScalarBaseMult2(random_value)
   S = G.Identity()
   for C_i in random_commitments:
     S = S + G.ScalarMult(C_i, pow(id, j))
   return S == S'
 
-def VerifyDeterministicCommitment(id, value, commitment):
+def VerifyDeterministicCommitment(id, value, det_commitment):
   S' = G.ScalarBaseMult(value)
   S = G.Identity()
-  for C_i in commitment:
+  for C_i in det_commitment:
     S = S + G.ScalarMult(C_i, pow(id, j))
   return S == S'
 ~~~~~
