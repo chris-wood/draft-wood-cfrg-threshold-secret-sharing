@@ -36,9 +36,12 @@ informative:
 
 --- abstract
 
-This document specifies two variants of threshold secret sharing schemes.
-The first variant, called unverifiable, is based on Shamir's original scheme,
-and the second variant, called verifiable, is based on Feldman's scheme.
+This document specifies three variants of threshold secret sharing schemes.
+The first variant, called TSS, is based on Shamir's original scheme.
+The second and third variants, called DVTSS and RVTSS, are based on
+on Feldman's and Pedersen's secret sharing schemes, respectively. Each variant
+is presented behind a simple abstraction that can be repurposed for a
+variety of application use cases.
 
 --- middle
 
@@ -59,8 +62,9 @@ that the share is valid. Other schemes allow metadata to be associated with
 a secret share and authenticated during secret recovery {{?ADSS=DOI.10.2478/popets-2020-0082}}.
 
 This document specifies a simple abstraction for threshold secret sharing
-with two different modes: unverifiable and verifiable. We denote TSS and VTSS
-as the unverifiable and verifiable modes, respectively.
+with three different variants: one for Shamir's origin scheme, denoted TSS,
+and two others for verifiable or authenticated secret sharing based on Feldman's {{Feldman}}
+and Pedersen's {{?Pedersen=DOI.10.1007/3-540-46766-1_9}} schemes, respectively.
 
 # Conventions and Definitions
 
@@ -203,7 +207,7 @@ We now detail a number of member functions that can be invoked on `G`.
   and fails if the input is not the valid canonical byte representation of an element of
   the group. This function can raise an error if deserialization fails
   or `A` is the identity element of the group.
-- Commitment(x, r): Output a random Pedersen commitment {{?Pedersen=DOI.10.1007/3-540-46766-1_9}} for
+- Commitment(x, r): Output a random Pedersen commitment {{Pedersen}} for
   Scalar inputs `x` and `r`. This function uses a second generator for computing the commitment, where
   the generator is defined as part of the group.
 
