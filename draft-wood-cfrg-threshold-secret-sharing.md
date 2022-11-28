@@ -557,8 +557,8 @@ The authenticated variants extend this syntax with two new functions:
 
 - Verify(share): Output 1 if `share` is valid and 0 otherwise, where `share` is a byte string
   output from Share or RandomShare.
-- ShareCommitment(share): Outputs a byte-string `commitment` corresponding to the share, where `share`
-  is a byte string output from Share or RandomShare.
+- ShareParts(share): Outputs two byte-strings, one corresponding to the encoded share and another
+  corresponding to the encoded share `commitment`.
 
 The rest of this section describes the different secret sharing variants.
 
@@ -677,12 +677,13 @@ def Verify(share):
   return VerifyDeterministicShare(id, value, commitments)
 ~~~~~
 
-Finally, ShareCommitment is implemented as follows.
+Finally, ShareParts is implemented as follows.
 
 ~~~~~
-def ShareCommitment(share):
-  commitment = share[2*SCALAR_SIZE:]
-  return commitment
+def ShareParts(share):
+  share_enc = share[:2*SCALAR_SIZE]
+  commitment_enc = share[2*SCALAR_SIZE:]
+  return share_enc, commitment_enc
 ~~~~~
 
 ## Authenticated Threshold Secret Sharing with Random Tags {#rvtss}
@@ -752,12 +753,13 @@ def Verify(share):
   return VerifyRandomCommitment(id, value, commitments)
 ~~~~~
 
-Finally, ShareCommitment is implemented as follows.
+Finally, ShareParts is implemented as follows.
 
 ~~~~~
-def ShareCommitment(share):
-  commitment = share[2*SCALAR_SIZE:]
-  return commitment
+def ShareParts(share):
+  share_enc = share[:2*SCALAR_SIZE]
+  commitment_enc = share[2*SCALAR_SIZE:]
+  return share_enc, commitment_enc
 ~~~~~
 
 # Random Scalar Generation {#random-scalar}
