@@ -541,7 +541,7 @@ This section describes the secret sharing variants. Each scheme has the basic sy
 - Share(k, secret, rand, n): Produce `n` `k`-threshold shares of `secret` using randomness `rand` for the
   target Scalar x, as well as an encoding of the shared secret. The value `k` is an integer, `secret`
   and `rand` are byte strings, `x` is a Scalar, and `n` is a positive integer at least as large as `k`.
-  The output is a list of `n` byte strings.
+  The output is the shared secret for each share, and a list of `n` byte strings corresponding to each share.
 - RandomShare(k, secret, rand): Produce a random `k`-threshold share of `secret` using randomness `rand`,
   as well as an encoding of the shared secret. The share is a `Nshare`-byte string, and the shared
   secret is a `Nsecret`-byte string. The value `k` is an integer, and `secret`  and `rand` are byte strings.
@@ -565,21 +565,32 @@ that implements the abstraction described in {{dep-field}}. Using F, the RandomS
 Share, and Recover functions are implemented as follows.
 
 ~~~~~
-def Share(threshold, secret, rand, id):
+def Share(threshold, secret, rand, n):
   context = SetupSplitter(mode_basic, secret, rand, threshold)
 
+  shares = []
+  for id in range(1, n+1):
+    value = context.Split(id)
+
+    id_enc = G.SerializeScalar(id)
+    value_enc = G.SerializeScalar(value)
+    share = id_enc || value_enc
+
+    shares.append(share)
+
+  return context.shared_secret, shares
+
+def RandomShare(k, secret, rand):
+  x = F.RandomScalar()
+
+  context = SetupSplitter(mode_basic, secret, rand, threshold)
   value = context.Split(id)
 
-  # Serialize the share
   id_enc = G.SerializeScalar(id)
   value_enc = G.SerializeScalar(value)
   share = id_enc || value_enc
 
   return context.shared_secret, share
-
-def RandomShare(k, secret, rand):
-  x = F.RandomScalar()
-  return Share(k, secret, rand, x)
 
 def Recover(threshold, share_set):
   if share_set.length < threshold:
@@ -594,69 +605,6 @@ def Recover(threshold, share_set):
   return Combine(points)
 ~~~~~
 
-## Authenticated Threshold Secret Sharing with Random Tags {#rvtss}
-
-An authenticated threshold secret sharing scheme with random tags, denoted RVTSS, is parameterzed by a
-prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}.
-The RVTSS scheme in this section is based on Pedersen's scheme from {{?Pedersen=DOI.10.1007/3-540-46766-1_9}}. In particular,
-using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
-
-~~~~~
-def Share(k, secret, rand, x):
-  context = SetupSplitter(mode_basic, secret, rand, threshold)
-
-  value = context.Split(id)
-  commitment = context.RandomCommitment(id, poly)
-
-  # Construct the share
-  id_enc = G.SerializeScalar(id)
-  value_enc = G.SerializeScalar(value)
-  commitment_enc = SerializeRandomCommitment(commitment)
-  share = id_enc || value_enc || commitment_enc
-
-  return share
-
-def RandomShare(k, secret, rand):
-  # Evaluate the polynomial at a random point
-  x = F.RandomScalar()
-  return Share(k, secret, rand, x)
-
-def Recover(k, share_set):
-  if share_set.length < k:
-    raise RecoveryFailedError
-
-  points = []
-  for share in share_set:
-    if Verify(share) == 0:
-      raise "invalid share"
-    x = F.DeserializeScalar(share[0:SCALAR_SIZE])
-    y = F.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
-    points.append((x, y))
-
-  return Combine(points)
-~~~~~
-
-Verify is implemented as follows.
-
-~~~~~
-def Verify(share):
-  id = G.DeserializeScalar(share[0:SCALAR_SIZE])
-  value = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
-  commitment_enc = share[2*SCALAR_SIZE:]
-
-  commitments = DeserializeRandomCommitment(commitment_enc)
-
-  return VerifyRandomCommitment(id, value, commitments)
-~~~~~
-
-Finally, ShareCommitment is implemented as follows.
-
-~~~~~
-def ShareCommitment(share):
-  commitment = share[2*SCALAR_SIZE:]
-  return commitment
-~~~~~
-
 ## Authenticated Threshold Secret Sharing with Deterministic Tags {#dvtss}
 
 An authenticated threshold secret sharing scheme with deterministic tags, denoted DVTSS, is parameterzed by a
@@ -665,24 +613,37 @@ The DVTSS scheme in this section is based on Feldman's scheme from {{Feldman}}. 
 using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
 
 ~~~~~
-def Share(k, secret, rand, x):
-  context = SetupSplitter(mode_basic, secret, rand, threshold)
+def Share(k, secret, rand, n):
+  context = SetupSplitter(mode_auth_deterministic, secret, rand, threshold)
 
+  commitment = context.DeterministicCommitment()
+  commitment_enc = SerializeDeterministicCommitment(commitment)
+  shares = []
+  for id in range(1, n+1):
+    value = context.Split(id)
+
+    id_enc = G.SerializeScalar(id)
+    value_enc = G.SerializeScalar(value)
+    share = id_enc || value_enc || commitment_enc
+
+    shares.append(share)
+
+  return context.shared_secret, shares
+
+def RandomShare(k, secret, rand):
+  # Evaluate the polynomial at a random point
+  x = F.RandomScalar()
+  context = SetupSplitter(mode_auth_deterministic, secret, rand, threshold)
+
+  commitment = context.DeterministicCommitment()
   value = context.Split(id)
-  commitment = context.DeterministicCommitment(id, poly)
 
-  # Construct the share
   id_enc = G.SerializeScalar(id)
   value_enc = G.SerializeScalar(value)
   commitment_enc = SerializeDeterministicCommitment(commitment)
   share = id_enc || value_enc || commitment_enc
 
-  return share
-
-def RandomShare(k, secret, rand):
-  # Evaluate the polynomial at a random point
-  x = F.RandomScalar()
-  return Share(k, secret, rand, x)
+  return context.shared_secret, share
 
 def Recover(k, share_set):
   if share_set.length < k:
@@ -710,6 +671,81 @@ def Verify(share):
   commitments = DeserializeDeterministicCommitment(commitment_enc)
 
   return VerifyDeterministicShare(id, value, commitments)
+~~~~~
+
+Finally, ShareCommitment is implemented as follows.
+
+~~~~~
+def ShareCommitment(share):
+  commitment = share[2*SCALAR_SIZE:]
+  return commitment
+~~~~~
+
+## Authenticated Threshold Secret Sharing with Random Tags {#rvtss}
+
+An authenticated threshold secret sharing scheme with random tags, denoted RVTSS, is parameterzed by a
+prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}.
+The RVTSS scheme in this section is based on Pedersen's scheme from {{?Pedersen=DOI.10.1007/3-540-46766-1_9}}. In particular,
+using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
+
+~~~~~
+def Share(k, secret, rand, n):
+  context = SetupSplitter(mode_auth_random, secret, rand, threshold)
+
+  shares = []
+  for id in range(1, n+1):
+    value = context.Split(id)
+    commitment = context.RandomCommitment(id)
+
+    id_enc = G.SerializeScalar(id)
+    value_enc = G.SerializeScalar(value)
+    commitment_enc = SerializeRandomCommitment(commitment)
+    share = id_enc || value_enc || commitment_enc
+
+    shares.append(share)
+
+  return context.shared_secret, shares
+
+def RandomShare(k, secret, rand):
+  context = SetupSplitter(mode_auth_random, secret, rand, threshold)
+
+  id = F.RandomScalar()
+  value = context.Split(id)
+  commitment = context.RandomCommitment(id)
+
+  id_enc = G.SerializeScalar(id)
+  value_enc = G.SerializeScalar(value)
+  commitment_enc = SerializeRandomCommitment(commitment)
+  share = id_enc || value_enc || commitment_enc
+
+  return context.shared_secret, share
+
+def Recover(k, share_set):
+  if share_set.length < k:
+    raise RecoveryFailedError
+
+  points = []
+  for share in share_set:
+    if Verify(share) == 0:
+      raise "invalid share"
+    x = F.DeserializeScalar(share[0:SCALAR_SIZE])
+    y = F.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
+    points.append((x, y))
+
+  return Combine(points)
+~~~~~
+
+Verify is implemented as follows.
+
+~~~~~
+def Verify(share):
+  id = G.DeserializeScalar(share[0:SCALAR_SIZE])
+  value = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
+  commitment_enc = share[2*SCALAR_SIZE:]
+
+  commitments = DeserializeRandomCommitment(commitment_enc)
+
+  return VerifyRandomCommitment(id, value, commitments)
 ~~~~~
 
 Finally, ShareCommitment is implemented as follows.
