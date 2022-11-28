@@ -323,9 +323,9 @@ at x-coordinate 0, i.e., `f(0)`, given a list of `t` other x-coordinates.
 # Secret Sharing Schemes
 
 In this section we describe different variants of secret sharing scheme. Each scheme
-consists of two phases: secret splitting, run by clients, and secret recovery, run 
-by aggregators. Secret splitting takes as input a secret, randomness, and a threshold, 
-and uses it to produce a shared secret and one or more shares that can be combined 
+consists of two phases: secret splitting, run by clients, and secret recovery, run
+by aggregators. Secret splitting takes as input a secret, randomness, and a threshold,
+and uses it to produce a shared secret and one or more shares that can be combined
 to recover the shared secret. The splitting phase is shown below.
 
 ~~~
@@ -355,7 +355,7 @@ Each scheme follows the same two-step pattern on the client for the splitting ph
 2. Use the context to produce one or more shares.
 
 The aggregator then runs a recovery function in the recovery phase to combine
-some threshold number of shares to produce the shared secret. 
+some threshold number of shares to produce the shared secret.
 
 Beyond the basic scheme, there are secret sharing schemes that provide authenticated
 shares, i.e., shares that can be verified for correctness by the aggregator prior to
@@ -388,7 +388,7 @@ def SetupSplitter(mode, threshold, secret, rand):
 ~~~~~
 
 The splitter context can then be used to produce shares evaluated at specific points
-on the polynomial. In particular, the context has a function for evaluating the 
+on the polynomial. In particular, the context has a function for evaluating the
 secret sharing polynomial on the input Scalar `id` and producing the corresponding output.
 This function is implemented as follows
 
@@ -402,7 +402,7 @@ For authenticated variants, the splitter context can also be used to produce com
 to the underlying secret. This document defines two types of commitments: random and deterministic
 commitments. Each of these functions takes as input an identifier at which the secret sharing
 polynomial was evaluated, as well as its evalutiation output, and produces a unique data
-structure for the type of commitment. 
+structure for the type of commitment.
 
 These two functions are implemented as follows.
 
@@ -413,7 +413,7 @@ def Context.RandomCommitment(id, value):
 
   inner_splitter = SetupSplitter(self.mode, self.threshold, random_secret, random_seed)
   value = inner_splitter.Split(id)
-  
+
   random_commitment = []
   for coefficient in inner_splitter.poly:
     C_i = G.ScalarBaseMult(coefficient)
@@ -498,8 +498,8 @@ def Combine(threshold, points):
   return shared_secret
 ~~~~~
 
-For authenticated variants, the recovery phase also requires verifying random or deterministic 
-share commitments produced during the splitting phase. Verification is done using one of 
+For authenticated variants, the recovery phase also requires verifying random or deterministic
+share commitments produced during the splitting phase. Verification is done using one of
 the two following functions.
 
 ~~~~~
@@ -579,11 +579,11 @@ def Recover(threshold, share_set):
   return Combine(points)
 ~~~~~
 
-# Authenticated Threshold Secret Sharing with Random Tags {#rvtss}
+## Authenticated Threshold Secret Sharing with Random Tags {#rvtss}
 
 An authenticated threshold secret sharing scheme with random tags, denoted RVTSS, is parameterzed by a
-prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}. 
-The RVTSS scheme in this section is based on Pedersen's scheme from {{Pedersen}}. In particular,
+prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}.
+The RVTSS scheme in this section is based on Pedersen's scheme from {{?Pedersen=DOI.10.1007/3-540-46766-1_9}}. In particular,
 using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
 
 ~~~~~
@@ -642,10 +642,10 @@ def ShareCommitment(share):
   return commitment
 ~~~~~
 
-# Authenticated Threshold Secret Sharing with Deterministic Tags {#dvtss}
+## Authenticated Threshold Secret Sharing with Deterministic Tags {#dvtss}
 
 An authenticated threshold secret sharing scheme with deterministic tags, denoted DVTSS, is parameterzed by a
-prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}. 
+prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}.
 The DVTSS scheme in this section is based on Feldman's scheme from {{Feldman}}. In particular,
 using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
 
