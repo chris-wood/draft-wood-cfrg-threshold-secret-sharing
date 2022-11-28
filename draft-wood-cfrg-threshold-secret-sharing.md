@@ -234,22 +234,23 @@ This section describes a method for deriving a polynomial coefficients based on 
 and randomness as input. The function is implicitly parameterized by a field F.
 
 ~~~
-  derive_poylnomial_coefficients(zero_coefficient, coefficient_rand, threshold):
+  derive_poylnomial_coefficients(zero_coefficient, coefficient_rand, threshold, ctx):
 
   Inputs:
   - zero_coefficient, secret value for the 0-th coefficient
   - coefficient_rand, randomness for deriving the remaining coefficients
   - threshold, the number of coefficients to derive
+  - ctx, a one-byte context identifier for the polynomial
 
   Outputs:
   - base, the encoded secret associated with the polynomial
   - poly, a list of coefficients representing the polynomial, starting from 0 in increasing order
 
   def derive_poylnomial_coefficients(zero_coefficient, coefficient_rand, t):
-    base = F.HashToScalar(zero_coefficient, str(t) || "-" || str(0))
+    base = F.HashToScalar(zero_coefficient, ctx || "-" || str(t) || "-" || str(0))
     poly = [base]
     for i in range(1, t):
-      poly.extend(F.HashToScalar(rand, str(t) || "-" || str(i)))
+      poly.extend(F.HashToScalar(rand, ctx || "-" || str(t) || "-" || str(i)))
     return F.SerialieScalar(base), poly
 ~~~
 
@@ -319,71 +320,251 @@ at x-coordinate 0, i.e., `f(0)`, given a list of `t` other x-coordinates.
     return L_i
 ~~~
 
-# Unverifiable Threshold Secret Sharing {#tss}
+# Secret Sharing Schemes
 
-An unverifiable threshold secret sharing scheme, denoted TSS, consists of two phases: secret
-splitting, run by clients, and secret recovery, run by aggregators. Secret splitting takes as input a secret,
-randomness, and a threshold, and uses it to produce a shared secret and one or more shares that
-can be combined to recover the shared secret. The splitting phase is shown below.
+In this section we describe different variants of secret sharing scheme. Each scheme
+consists of two phases: secret splitting, run by clients, and secret recovery, run 
+by aggregators. Secret splitting takes as input a secret, randomness, and a threshold, 
+and uses it to produce a shared secret and one or more shares that can be combined 
+to recover the shared secret. The splitting phase is shown below.
 
 ~~~
              +---------+
-   Secret --->   TSS   +-----> Share 1, Share 2, ...
+   Secret ---> Secret  +-----> Share 1, Share 2, ...
 Randomness -->  Split  +-----> Shared secret
              +---------+
 ~~~
-{: #split-procedure title="TSS splitting procedure"}
+{: #split-procedure title="Secret splitting procedure"}
 
-Secret recover involves the combination of at least the threshold number of secret shares
+Secret recovery involves the combination of at least the threshold number of secret shares
 to produce the shared secret derived from the splitting phase. This is shown below.
 
 ~~~
 Share 1   Share 2   ..   Share t
     |          |             |
     |          |             |    +-----------+
-    |          |             +--->|    TSS    |
+    |          |             +--->|  Secret   |
     |          +----------------->|  Recover  +--> Shared Secret
     +---------------------------->+-----------+
 ~~~
-{: #recover-procedure title="TSS recover procedure"}
+{: #recover-procedure title="Secret recover procedure"}
 
-The syntax of the splitting and recover phases in the TSS scheme is below:
+Each scheme follows the same two-step pattern on the client for the splitting phase:
 
-- SplitAt(k, secret, rand, x): Produce a `k`-threshold share of `secret` using randomness `rand` for the
+1. Set up a secret sharing context on the client.
+2. Use the context to produce one or more shares.
+
+The aggregator then runs a recovery function in the recovery phase to combine
+some threshold number of shares to produce the shared secret. 
+
+Beyond the basic scheme, there are secret sharing schemes that provide authenticated
+shares, i.e., shares that can be verified for correctness by the aggregator prior to
+aggregating. Each variant is identified by a one-byte value.
+
+| Mode                     | Value |
+|:=========================|:======|
+| mode_basic               | 0x00  |
+| mode_auth_deterministic  | 0x01  |
+| mode_auth_deterministic  | 0x02  |
+{: #hpke-modes title="Secret sharing schemes"}
+
+The rest of this section describes some core funtions used by the secret sharing
+schemes. Each of the variants are then described in {{variants}}.
+
+## Splitter Functions
+
+The splitting phase requries establishment of a context. This context takes
+as input the secret value `secret` to share, the randomness `rand` to use
+for deriving shares, and the desired threshold of the shares. The context
+then consists of the internal poylnomial used for producing shares, as well
+as the shared secret associated with each share.
+
+Construction of the context is done as follows:
+
+~~~~~
+def SetupSplitter(mode, threshold, secret, rand):
+  shared_secret, poly = derive_poylnomial_coefficients(secret, rand, threshold, mode)
+  return SplitterContext(mode, threshold, shared_secret, poly)
+~~~~~
+
+The splitter context can then be used to produce shares evaluated at specific points
+on the polynomial. In particular, the context has a function for evaluating the 
+secret sharing polynomial on the input Scalar `id` and producing the corresponding output.
+This function is implemented as follows
+
+~~~~~
+def Context.Split(id):
+  value = polynomial_evaluate(id, self.poly)
+  return value
+~~~~~
+
+For authenticated variants, the splitter context can also be used to produce commitments
+to the underlying secret. This document defines two types of commitments: random and deterministic
+commitments. Each of these functions takes as input an identifier at which the secret sharing
+polynomial was evaluated, as well as its evalutiation output, and produces a unique data
+structure for the type of commitment. 
+
+These two functions are implemented as follows.
+
+~~~~~
+def Context.RandomCommitment(id, value):
+  random_secret = G.RandomScalar()
+  random_seed = random(32)
+
+  inner_splitter = SetupSplitter(self.mode, self.threshold, random_secret, random_seed)
+  value = inner_splitter.Split(id)
+  
+  random_commitment = []
+  for coefficient in inner_splitter.poly:
+    C_i = G.ScalarBaseMult(coefficient)
+    random_commitment.append(C_i)
+  return (random_value, random_commitment)
+
+def Context.DeterministicCommitment(id, value):
+  commitment = []
+  for coefficient in self.poly:
+    C_i = G.ScalarBaseMult(coefficient)
+    commitment.append(C_i)
+  return commitment
+~~~~~
+
+Commitments can be serialized and deserialized from their unique data structures to
+byte strings using for transmission between clients and aggregators. The following two
+functions describe how to serialize and deserialize deterministic commitments. Note that
+the deserialization function is fallible for invalid inputs, i.e., inputs of the wrong
+length or with invalid Element encodings.
+
+~~~~~
+SerializeDeterministicCommitment(commitment):
+  commitment = nil
+  for C_i in commitment:
+    commitment = commitment || G.SerializeElement(C_i)
+  return commitment
+
+DeserializeDeterministicCommitment(commitment):
+  if len(commitment) % Nelement != 0:
+    raise "invalid input"
+  num_coefficients = len(commitment) % Nelement
+  commitments = []
+  for i in range(0, num_coefficients):
+    c_i = G.DeserializeElement(commitment[i*Nelement:(i+1)*Nelement])
+    commitments.extend(c_i)
+  return commitments
+~~~~~
+
+Similarly, the following two functions describe how to serialize and deserialize random
+commitments. Note that the deserialization function is fallible for invalid inputs, i.e.,
+inputs of the wrong length or with invalid Element encodings.
+
+~~~~~
+SerializeRandomCommitment(commitment):
+  random_value, random_commitments = commitment
+  commitment = F.SerializeScalar(random_value)
+  for C_i in random_commitments:
+    commitment = commitment || G.SerializeElement(C_i)
+  return commitment
+
+DeserializeRandomCommitment(commitment):
+  if len(commitment) < Nscalar:
+    raise "invalid input"
+  random_value = F.DeserializeScalar(commitment[:Nscalar])
+
+  if len(commitment[Nscalar:]) % Nelement != 0:
+  num_coefficients = len(commitment[Nscalar:]) % Nelement
+  random_commitments = []
+  for i in range(0, num_coefficients):
+    c_i = G.DeserializeElement(commitment[Nscalar+i*Nelement:Nscalar+(i+1)*Nelement])
+    random_commitments.extend(c_i)
+  return (random_value, random_commitments)
+~~~~~
+
+## Recovery Functions
+
+The basic recovery phase consists of a single function:
+
+- Combine(k, share_set): Aggregate the secret shares in `share_set`, which is of size at least
+  `k`, and recover the shared secret output from the corresponding RandomShare or Share function.
+  If recovery fails, this function returns an error.
+
+This function is implemented as follows.
+
+~~~~~
+def Combine(threshold, points):
+  if points.length < threshold:
+    raise RecoveryFailedError
+
+  poly = polynomial_interpolation(points)
+  shared_secret = F.SerializeScalar(poly[0])
+  return shared_secret
+~~~~~
+
+For authenticated variants, the recovery phase also requires verifying random or deterministic 
+share commitments produced during the splitting phase. Verification is done using one of 
+the two following functions.
+
+~~~~~
+def VerifyRandomCommitment(id, value, commitment):
+  random_value, random_commitments = commitment
+  S' = G.ScalarBaseMult(value) + G.ScalarBaseMult2(random_value)
+  S = G.Identity()
+  for C_i in random_commitments:
+    S = S + G.ScalarMult(C_i, pow(id, j))
+  return S == S'
+
+def VerifyDeterministicCommitment(id, value, commitment):
+  S' = G.ScalarBaseMult(value)
+  S = G.Identity()
+  for C_i in commitment:
+    S = S + G.ScalarMult(C_i, pow(id, j))
+  return S == S'
+~~~~~
+
+# Secret Sharing Variants {#variants}
+
+This section describes the secret sharing variants. Each scheme has the basic syntax:
+
+- Share(k, secret, rand, n): Produce `n` `k`-threshold shares of `secret` using randomness `rand` for the
   target Scalar x, as well as an encoding of the shared secret. The value `k` is an integer, `secret`
-  and `rand` are byte strings, and `x` is a Scalar.
-- RandomSplit(k, secret, rand): Produce a random `k`-threshold share of `secret` using randomness `rand`,
+  and `rand` are byte strings, `x` is a Scalar, and `n` is a positive integer at least as large as `k`.
+  The output is a list of `n` byte strings.
+- RandomShare(k, secret, rand): Produce a random `k`-threshold share of `secret` using randomness `rand`,
   as well as an encoding of the shared secret. The share is a `Nshare`-byte string, and the shared
   secret is a `Nsecret`-byte string. The value `k` is an integer, and `secret`  and `rand` are byte strings.
 - Recover(k, share_set): Combine the secret shares in `share_set`, which is of size at least
   `k`, and recover the shared secret output from the corresponding RandomShare or Share function.
   If recovery fails, this function returns an error.
 
-In the rest of this section, we describe how to implement these functions for the TSS scheme.
+The authenticated variants extend this syntax with two new functions:
 
-## Construction
+- Verify(share): Output 1 if `share` is valid and 0 otherwise, where `share` is a byte string
+  output from Share or RandomShare.
+- ShareCommitment(share): Outputs a byte-string `commitment` corresponding to the share, where `share`
+  is a byte string output from Share or RandomShare.
 
-A TSS scheme is parameterzed by a field F that implements the abstraction described in {{dep-field}}.
-Using F, the RandomSplit, SplitAt, and Recover functions are implemented as follows.
+The rest of this section describes the different secret sharing variants.
+
+## Basic Threshold Secret Sharing {#tss}
+
+The basic threshold secret sharing scheme, denoted TSS, is parameterzed by a field F
+that implements the abstraction described in {{dep-field}}. Using F, the RandomShare,
+Share, and Recover functions are implemented as follows.
 
 ~~~~~
-def SplitAt(threshold, secret, rand, x):
-  # Construct the secret sharing polynomial
-  base, poly = poylnomial_coefficients(secret, rand, threshold)
+def Share(threshold, secret, rand, id):
+  context = SetupSplitter(mode_basic, secret, rand, threshold)
 
-  # Evaluate the polynomial at the desired point
-  y = polynomial_evaluate(x, poly)
+  value = context.Split(id)
 
-  # Construct the share
-  x_enc = G.SerializeScalar(x)
-  y_enc = G.SerializeScalar(y)
-  share = x_enc || y_enc
+  # Serialize the share
+  id_enc = G.SerializeScalar(id)
+  value_enc = G.SerializeScalar(value)
+  share = id_enc || value_enc
 
-  return base, share
+  return context.shared_secret, share
 
-def RandomSplit(k, secret, rand):
+def RandomShare(k, secret, rand):
   x = F.RandomScalar()
-  return SplitAt(k, secret, rand, x)
+  return Share(k, secret, rand, x)
 
 def Recover(threshold, share_set):
   if share_set.length < threshold:
@@ -395,72 +576,98 @@ def Recover(threshold, share_set):
     y = F.DeserializeScalar(share[SCALAR_SIZE:])
     points.append((x, y))
 
-  poly = polynomial_interpolation(points)
-  base = poly[0]
-  return F.SerializeScalar(base)
+  return Combine(points)
 ~~~~~
 
-# Verifiable Threshold Secret Sharing {#vtss}
+# Authenticated Threshold Secret Sharing with Random Tags {#rvtss}
 
-A verifiable threshold secret sharing scheme, denoted VTSS, is similar to a TSS scheme
-but with the additional property that each share can be verified for consistency with the
-underlying secret. This property lets the aggregator check that the share is correct.
-Like the TSS scheme, a VTSS scheme consists of three phases: secret splitting, run by clients,
-share verification, run by aggregators, and secret recovery, run by aggregators. Secret
-splitting and recovery are as described in {{tss}}. Share verification takes as input a share
-and decides whether or not the share is valid, as shown below.
-
-~~~
-        +-------------+
-Share --> VTSS Verify +---> Valid?
-        +-------------+
-~~~
-{: #verification-procedure title="VTSS verifiation procedure"}
-
-Each share is verified with a corresponding commitment. A VTSS scheme allows an aggregator
-to extract an encoding of the commitment from a share. This can be used, for example, to
-group shares that have matching commitment values. Note that not all VTSS schemes will
-produce secret shares with matching commitments when run on the same inputs.
-
-VTSS extends the syntax of a TSS scheme with new functions that support share verification,
-described below:
-
-- VerifyShare(share): Output 1 if the share is valid and 0 otherwise.
-- ShareCommitment(share): Outputs a commitment corresponding to the share.
-
-The rest of this section describes how to construct a VTSS scheme.
-
-## Construction
-
-A VTSS scheme is parameterzed by a prime-order group G and its scalar field F that
-implements the abstraction described in {{dep-pog}}. The VTSS scheme in this section
-is based on Feldman's scheme from {{Feldman}}. In particular, using G and F, the RandomSplit,
-SplitAt, and Recover functions are implemented as follows.
-
-[[OPEN ISSUE: Should we specify Pedersen secret sharing here?]]
+An authenticated threshold secret sharing scheme with random tags, denoted RVTSS, is parameterzed by a
+prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}. 
+The RVTSS scheme in this section is based on Pedersen's scheme from {{Pedersen}}. In particular,
+using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
 
 ~~~~~
+def Share(k, secret, rand, x):
+  context = SetupSplitter(mode_basic, secret, rand, threshold)
+
+  value = context.Split(id)
+  commitment = context.RandomCommitment(id, poly)
+
+  # Construct the share
+  id_enc = G.SerializeScalar(id)
+  value_enc = G.SerializeScalar(value)
+  commitment_enc = SerializeRandomCommitment(commitment)
+  share = id_enc || value_enc || commitment_enc
+
+  return share
+
 def RandomShare(k, secret, rand):
   # Evaluate the polynomial at a random point
   x = F.RandomScalar()
-  return SplitAt(k, secret, rand, x)
+  return Share(k, secret, rand, x)
 
-def SplitAt(k, secret, rand, x):
-  # Construct the secret sharing polynomial
-  poly = poylnomial_coefficients(secret, rand, k)
+def Recover(k, share_set):
+  if share_set.length < k:
+    raise RecoveryFailedError
 
-  # Compute the secret (and polynomial) commitment
-  commitment = Commit(secret)
+  points = []
+  for share in share_set:
+    if Verify(share) == 0:
+      raise "invalid share"
+    x = F.DeserializeScalar(share[0:SCALAR_SIZE])
+    y = F.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
+    points.append((x, y))
 
-  # Evaluate the polynomial at the desired point
-  y = polynomial_evaluate(x, poly)
+  return Combine(points)
+~~~~~
+
+Verify is implemented as follows.
+
+~~~~~
+def Verify(share):
+  id = G.DeserializeScalar(share[0:SCALAR_SIZE])
+  value = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
+  commitment_enc = share[2*SCALAR_SIZE:]
+
+  commitments = DeserializeRandomCommitment(commitment_enc)
+
+  return VerifyRandomCommitment(id, value, commitments)
+~~~~~
+
+Finally, ShareCommitment is implemented as follows.
+
+~~~~~
+def ShareCommitment(share):
+  commitment = share[2*SCALAR_SIZE:]
+  return commitment
+~~~~~
+
+# Authenticated Threshold Secret Sharing with Deterministic Tags {#dvtss}
+
+An authenticated threshold secret sharing scheme with deterministic tags, denoted DVTSS, is parameterzed by a
+prime-order group G and its scalar field F that implements the abstraction described in {{dep-pog}}. 
+The DVTSS scheme in this section is based on Feldman's scheme from {{Feldman}}. In particular,
+using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
+
+~~~~~
+def Share(k, secret, rand, x):
+  context = SetupSplitter(mode_basic, secret, rand, threshold)
+
+  value = context.Split(id)
+  commitment = context.DeterministicCommitment(id, poly)
 
   # Construct the share
-  x_enc = G.SerializeScalar(x)
-  y_enc = G.SerializeScalar(y)
-  share = x_enc || y_enc || commitment
+  id_enc = G.SerializeScalar(id)
+  value_enc = G.SerializeScalar(value)
+  commitment_enc = SerializeDeterministicCommitment(commitment)
+  share = id_enc || value_enc || commitment_enc
 
   return share
+
+def RandomShare(k, secret, rand):
+  # Evaluate the polynomial at a random point
+  x = F.RandomScalar()
+  return Share(k, secret, rand, x)
 
 def Recover(k, share_set):
   if share_set.length < k:
@@ -474,43 +681,20 @@ def Recover(k, share_set):
     y = F.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
     points.append((x, y))
 
-  poly = polynomial_interpolation(points)
-  return poly[0]
+  return Combine(points)
 ~~~~~
 
-The helper functions `polynomial_evaluate` and `polynomial_interpolation` are as defined
-in {{helpers}}. The helper function Commit is implemented as follows:
-
-~~~~~
-def Commit(poly):
-  commitment = nil
-  for coefficient in poly:
-    C_i = G.ScalarBaseMult(coefficient)
-    commitment = commitment || G.SerializeElement(C_i)
-  return commitment
-~~~~~
-
-VerifyShare is implemented as follows.
+Verify is implemented as follows.
 
 ~~~~~
 def Verify(share):
-  x = G.DeserializeScalar(share[0:SCALAR_SIZE])
-  y = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
-  commitment = share[2*SCALAR_SIZE:]
+  id = G.DeserializeScalar(share[0:SCALAR_SIZE])
+  value = G.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
+  commitment_enc = share[2*SCALAR_SIZE:]
 
-  S' = G.ScalarBaseMult(y)
-  if len(commitment) % Nelement != 0:
-    raise "invalid commitment length"
-  num_coefficients = len(commitment) % Nelement
-  commitments = []
-  for i in range(0, num_coefficients):
-    c_i = G.DeserializeElement(commitment[i*Nelement:(i+1)*Nelement])
-    commitments.extend(c_i)
+  commitments = DeserializeDeterministicCommitment(commitment_enc)
 
-  S = G.Identity()
-  for j in range(0, num_coefficients):
-    S = S + G.ScalarMult(commitments[j], pow(x, j))
-  return S == S'
+  return VerifyDeterministicShare(id, value, commitments)
 ~~~~~
 
 Finally, ShareCommitment is implemented as follows.
