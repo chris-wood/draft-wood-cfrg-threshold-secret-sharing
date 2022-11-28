@@ -25,6 +25,9 @@ class Group(object):
     def generator(self):
         raise Exception("not implemented")
 
+    def generator2(self):
+        raise Exception("not implemented")
+
     def identity(self):
         raise Exception("not implemented")
 
@@ -59,6 +62,10 @@ class Ristretto255(Group):
 
     def generator(self):
         return Ed25519Point().base()
+
+    def generator2(self):
+        element_enc = "d2ac2cd93039618e1ffaebdb5df9044eb6ebc8aa9d47d61ab1d45338f3c18d53"
+        return self.deserialize_element(bytes.fromhex(element_enc))
 
     def order(self):
         return Ed25519Point().order

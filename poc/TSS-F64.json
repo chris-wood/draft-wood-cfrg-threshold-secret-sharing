@@ -2,11 +2,11 @@
   "name": "TSS-F64",
   "k": "2",
   "secret": "736563726574",
-  "randomness": "b055db47e17ac19514ec6cca935d274e2a34e4e2478d5eb5adbe686cc7565eb0",
+  "randomness": "1e325dc577261c977ea0faa042202e1ff3b3ea913f6530b1a4b19b58bed31205",
   "shares": [
-    "b3b155caa4f41631c0b52a5c58f47981",
-    "3d62640c0a7c0bbf2d9682ae58ddd06a",
-    "9c411a0e85cc2e904a82a8090c8ae7d7"
+    "56a3270beed985df81b13a5388fa5e52",
+    "beb1de321d43cf0da058d206e6423b9f",
+    "d9d903d1c76a850201aab431d37ae8f0"
   ],
-  "shared_secret": "2c419ee80137601e"
+  "shared_secret": "fc3a9e517170d3d3"
 }
