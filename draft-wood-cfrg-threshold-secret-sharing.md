@@ -203,6 +203,9 @@ We now detail a number of member functions that can be invoked on `G`.
   and fails if the input is not the valid canonical byte representation of an element of
   the group. This function can raise an error if deserialization fails
   or `A` is the identity element of the group.
+- Commitment(x, r): Output a random Pedersen commitment {{?Pedersen=DOI.10.1007/3-540-46766-1_9}} for
+  Scalar inputs `x` and `r`. This function uses a second generator for computing the commitment, where
+  the generator is defined as part of the group.
 
 ### Group Ristretto255
 
@@ -217,6 +220,10 @@ in {{dep-pog}} is as follows.
 - DeserializeElement(buf): Implemented using the 'Decode' function from {{RISTRETTO}}.
   Additionally, this function validates that the resulting element is not the group
   identity element.
+- Commitment(x, r): Implemented by computing the sum of G.ScalarBaseMult(x) and
+  G.ScalarMult(B2, r), where B2 is the second group generator defined below.
+
+The encoding of the second generator B2 is d2ac2cd93039618e1ffaebdb5df9044eb6ebc8aa9d47d61ab1d45338f3c18d53.
 
 # Helper Functions {#helpers}
 
@@ -407,20 +414,20 @@ structure for the type of commitment.
 These two functions are implemented as follows.
 
 ~~~~~
-def Context.RandomCommitment(id, value):
-  random_secret = G.RandomScalar()
+def Context.RandomCommitment(id):
+  random_secret = random(32)
   random_seed = random(32)
 
   inner_splitter = SetupSplitter(self.mode, self.threshold, random_secret, random_seed)
   value = inner_splitter.Split(id)
 
-  random_commitment = []
-  for coefficient in inner_splitter.poly:
-    C_i = G.ScalarBaseMult(coefficient)
-    random_commitment.append(C_i)
-  return (random_value, random_commitment)
+  random_commitments = []
+  for coefficient in range(self.threshold):
+    C_i = G.Commitment(self.poly[i], inner_splitter.poly[i])
+    random_commitments.append(C_i)
+  return (random_value, random_commitments)
 
-def Context.DeterministicCommitment(id, value):
+def Context.DeterministicCommitment():
   commitment = []
   for coefficient in self.poly:
     C_i = G.ScalarBaseMult(coefficient)
