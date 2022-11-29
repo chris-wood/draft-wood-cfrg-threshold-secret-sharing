@@ -5,7 +5,7 @@ import sys
 
 try:
     from sagelib.common import to_hex, random_bytes, as_bytes
-    from sagelib.polynomial import derive_poylnomial, polynomial_evaluate
+    from sagelib.polynomial import derive_poylnomial, polynomial_evaluate, derive_lagrange_coefficient
 except ImportError as e:
     sys.exit("Error loading preprocessed sage files. Try running `make setup && make clean pyfiles`. Full error: " + e)
 
@@ -130,3 +130,17 @@ class SplitterContext(object):
 def setup_splitter(F, mode, threshold, secret, rand):
     shared_secret, poly = derive_poylnomial(F, secret, rand, threshold, mode)
     return SplitterContext(mode, threshold, shared_secret, poly)
+
+def combine(F, threshold, points):
+    def polynomial_interpolation(F, points):
+        L = [x for (x, _) in points]
+        constant = 0
+        for (x, y) in points:
+            delta = (y * derive_lagrange_coefficient(F, x, L)) % F.MODULUS
+            constant = (constant + delta) % F.MODULUS
+        return constant
+
+    if len(points) < threshold:
+            raise Exception("invalid parameters")
+    s = polynomial_interpolation(F, points)
+    return F.serialize_scalar(s)

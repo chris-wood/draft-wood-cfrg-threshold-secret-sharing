@@ -542,14 +542,14 @@ def VerifyDeterministicCommitment(id, value, det_commitment):
 
 This section describes the secret sharing variants. Each scheme has the basic syntax:
 
-- Share(k, secret, rand, n): Produce `n` `k`-threshold shares of `secret` using randomness `rand` for the
+- Share(threshold, secret, rand, n): Produce `n` shares of `secret` with threshold value `threshold` using randomness `rand` for the
   target Scalar x, as well as an encoding of the shared secret. The value `k` is an integer, `secret`
   and `rand` are byte strings, `x` is a Scalar, and `n` is a positive integer at least as large as `k`.
   The output is the shared secret for each share, and a list of `n` byte strings corresponding to each share.
-- RandomShare(k, secret, rand): Produce a random `k`-threshold share of `secret` using randomness `rand`,
+- RandomShare(threshold, secret, rand): Produce a random share of `secret` with threshold value `threshold` using randomness `rand`,
   as well as an encoding of the shared secret. The share is a `Nshare`-byte string, and the shared
   secret is a `Nsecret`-byte string. The value `k` is an integer, and `secret`  and `rand` are byte strings.
-- Recover(k, share_set): Combine the secret shares in `share_set`, which is of size at least
+- Recover(share_set): Combine the secret shares in `share_set`, which is of size at least
   `k`, and recover the shared secret output from the corresponding RandomShare or Share function.
   If recovery fails, this function returns an error.
 
@@ -584,7 +584,7 @@ def Share(threshold, secret, rand, n):
 
   return context.shared_secret, shares
 
-def RandomShare(k, secret, rand):
+def RandomShare(threshold, secret, rand):
   x = F.RandomScalar()
 
   context = SetupSplitter(mode_basic, secret, rand, threshold)
@@ -606,7 +606,7 @@ def Recover(threshold, share_set):
     y = F.DeserializeScalar(share[SCALAR_SIZE:])
     points.append((x, y))
 
-  return Combine(points)
+  return Combine(threshold, points)
 ~~~~~
 
 ## Authenticated Threshold Secret Sharing with Deterministic Tags {#dvtss}
@@ -617,7 +617,7 @@ The DVTSS scheme in this section is based on Feldman's scheme from {{Feldman}}. 
 using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
 
 ~~~~~
-def Share(k, secret, rand, n):
+def Share(threshold, secret, rand, n):
   context = SetupSplitter(mode_auth_deterministic, secret, rand, threshold)
 
   commitment = context.DeterministicCommitment()
@@ -634,7 +634,7 @@ def Share(k, secret, rand, n):
 
   return context.shared_secret, shares
 
-def RandomShare(k, secret, rand):
+def RandomShare(threshold, secret, rand):
   # Evaluate the polynomial at a random point
   x = F.RandomScalar()
   context = SetupSplitter(mode_auth_deterministic, secret, rand, threshold)
@@ -649,8 +649,8 @@ def RandomShare(k, secret, rand):
 
   return context.shared_secret, share
 
-def Recover(k, share_set):
-  if share_set.length < k:
+def Recover(threshold, share_set):
+  if share_set.length < threshold:
     raise RecoveryFailedError
 
   points = []
@@ -661,7 +661,7 @@ def Recover(k, share_set):
     y = F.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
     points.append((x, y))
 
-  return Combine(points)
+  return Combine(threshold, points)
 ~~~~~
 
 Verify is implemented as follows.
@@ -694,7 +694,7 @@ The RVTSS scheme in this section is based on Pedersen's scheme from {{?Pedersen=
 using G and F, the RandomShare, Share, and Recover functions are implemented as follows.
 
 ~~~~~
-def Share(k, secret, rand, n):
+def Share(threshold, secret, rand, n):
   context = SetupSplitter(mode_auth_random, secret, rand, threshold)
 
   shares = []
@@ -711,7 +711,7 @@ def Share(k, secret, rand, n):
 
   return context.shared_secret, shares
 
-def RandomShare(k, secret, rand):
+def RandomShare(threshold, secret, rand):
   context = SetupSplitter(mode_auth_random, secret, rand, threshold)
 
   id = F.RandomScalar()
@@ -725,8 +725,8 @@ def RandomShare(k, secret, rand):
 
   return context.shared_secret, share
 
-def Recover(k, share_set):
-  if share_set.length < k:
+def Recover(threshold, share_set):
+  if share_set.length < threshold:
     raise RecoveryFailedError
 
   points = []
@@ -737,7 +737,7 @@ def Recover(k, share_set):
     y = F.DeserializeScalar(share[SCALAR_SIZE:2*SCALAR_SIZE])
     points.append((x, y))
 
-  return Combine(points)
+  return Combine(threshold, points)
 ~~~~~
 
 Verify is implemented as follows.

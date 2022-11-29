@@ -9,8 +9,7 @@ import itertools
 try:
     from sagelib.common import to_hex, random_bytes, as_bytes
     from sagelib.groups import Ristretto255
-    from sagelib.polynomial import derive_poylnomial, polynomial_evaluate, derive_lagrange_coefficient
-    from sagelib.core import setup_splitter, deserialize_random_commitment
+    from sagelib.core import setup_splitter, combine, deserialize_random_commitment
 except ImportError as e:
     sys.exit("Error loading preprocessed sage files. Try running `make setup && make clean pyfiles`. Full error: " + e)
 
@@ -51,14 +50,6 @@ class RVTSSAggregator(object):
         self.threshold = threshold
 
     def recover(self, share_set):
-        def polynomial_interpolation(points):
-            L = [x for (x, _) in points]
-            constant = 0
-            for (x, y) in points:
-                delta = (y * derive_lagrange_coefficient(self.F, x, L)) % self.F.MODULUS
-                constant = (constant + delta) % self.F.MODULUS
-            return constant
-
         if len(share_set) < self.threshold:
             raise Exception("invalid parameters")
         points = []
@@ -67,8 +58,7 @@ class RVTSSAggregator(object):
             y = self.F.deserialize_scalar(share[self.F.SCALAR_SIZE:2*self.F.SCALAR_SIZE])
             points.append((x, y))
 
-        s = polynomial_interpolation(points[:self.threshold])
-        return self.F.serialize_scalar(s)
+        return combine(self.F, self.threshold, points)
 
     def verify(self, share):
         x = self.F.deserialize_scalar(share[0:self.F.SCALAR_SIZE])

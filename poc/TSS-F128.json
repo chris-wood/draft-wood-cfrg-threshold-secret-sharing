@@ -2,11 +2,11 @@
   "name": "TSS-F128",
   "k": "2",
   "secret": "736563726574",
-  "randomness": "1e325dc577261c977ea0faa042202e1ff3b3ea913f6530b1a4b19b58bed31205",
+  "randomness": "ca975c9822fb21e1ddf8f79748fb7e81774e5f15cfc9dbd0954a5bed3d1f5372",
   "shares": [
-    "fef4c962e1c956bacc957b5cedcd9d748039bc3adb5e8e1fec97bda00c44462c",
-    "c27808d82207cca5ab6f0e20b790afaac3e34be725664badc43a093b4d493327",
-    "6995a7a17e03fb0b8a4970c43b40d83500ad27f8fbe0da42bf1e8f92f072a9f3"
+    "9a0ed8fc7377ddc507c25365a63908f05dc8a886bc1f18b5d54d02833ab3b56b",
+    "4dbaf6c84847679f12935704b444d8e7ce2dbaed027e85a725207e75e2658af0",
+    "e817fdbeed0ac1444a06f09d3617d1921bca82fe87484ec88b46885e9e5f62f2"
   ],
   "shared_secret": "09d3b1b0f9be9f530d2cd11f0bda2cac"
 }

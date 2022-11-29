@@ -9,8 +9,7 @@ import itertools
 try:
     from sagelib.common import to_hex, random_bytes, as_bytes
     from sagelib.field import Field64, Field128, Field255, FieldCurve25519
-    from sagelib.polynomial import derive_poylnomial, polynomial_evaluate, derive_lagrange_coefficient
-    from sagelib.core import setup_splitter
+    from sagelib.core import setup_splitter, combine
 except ImportError as e:
     sys.exit("Error loading preprocessed sage files. Try running `make setup && make clean pyfiles`. Full error: " + e)
 
@@ -44,14 +43,6 @@ class TSSAggregator(object):
         self.threshold = threshold
 
     def recover(self, share_set):
-        def polynomial_interpolation(points):
-            L = [x for (x, _) in points]
-            constant = 0
-            for (x, y) in points:
-                delta = (y * derive_lagrange_coefficient(F, x, L)) % F.MODULUS
-                constant = (constant + delta) % F.MODULUS
-            return constant
-
         if len(share_set) < self.threshold:
             raise Exception("invalid parameters")
         points = []
@@ -60,8 +51,7 @@ class TSSAggregator(object):
             y = self.F.deserialize_scalar(share[F.SCALAR_SIZE:])
             points.append((x, y))
 
-        s = polynomial_interpolation(points[:self.threshold])
-        return self.F.serialize_scalar(s)
+        return combine(self.F, self.threshold, points)
 
 num_shares = 3
 k = 2
