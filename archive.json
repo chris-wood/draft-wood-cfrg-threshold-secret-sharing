@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2022-11-27T00:20:22.661640+00:00",
+  "timestamp": "2022-11-29T00:19:14.189848+00:00",
   "repo": "chris-wood/draft-wood-cfrg-threshold-secret-sharing",
   "labels": [
     {
@@ -49,6 +49,154 @@
       "color": "ffffff"
     }
   ],
-  "issues": [],
-  "pulls": []
+  "issues": [
+    {
+      "number": 2,
+      "id": "I_kwDOIeocT85Xc43B",
+      "title": "define threshold param",
+      "url": "https://github.com/chris-wood/draft-wood-cfrg-threshold-secret-sharing/issues/2",
+      "state": "OPEN",
+      "author": "armfazh",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "In the introduction, we must define what threshold parameter is.\r\nUsually the notation is `(t,n)-secret sharing`, so the introduction can give an explanation of what `t` and `n` are, and the meaning of trivial boundary conditions, t=1, t=n.",
+      "createdAt": "2022-11-28T22:42:59Z",
+      "updatedAt": "2022-11-28T23:25:50Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "OWNER",
+          "body": "It would also be note that this is not a draft about additive secret sharing schemes.",
+          "createdAt": "2022-11-28T23:25:50Z",
+          "updatedAt": "2022-11-28T23:25:50Z"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "id": "I_kwDOIeocT85Xc5s4",
+      "title": "make document generic wrt the field",
+      "url": "https://github.com/chris-wood/draft-wood-cfrg-threshold-secret-sharing/issues/3",
+      "state": "OPEN",
+      "author": "armfazh",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "No need to enumerate specific instances of fields.\r\nbetter to make the description generic to an interface that the target field implements.\r\n\r\nSpecific fields can be enumerated in the end of the document, either as examples or as test vectors.\r\n\r\n",
+      "createdAt": "2022-11-28T22:44:42Z",
+      "updatedAt": "2022-11-28T22:44:42Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 4,
+      "id": "I_kwDOIeocT85Xc6QR",
+      "title": "How to pair small fields with elliptic curve groups",
+      "url": "https://github.com/chris-wood/draft-wood-cfrg-threshold-secret-sharing/issues/4",
+      "state": "OPEN",
+      "author": "armfazh",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Usually, the target field for splitting secrets (such as in threshold signatures) is the field of scalars of an elliptic curve group. This allows to play with Discrete Log to ensure verifiability and other properties.\r\n\r\nHowever, how to pair small fields, e.g. those of size 64 or 128 bits, with an elliptic curve group of similar size?\r\n",
+      "createdAt": "2022-11-28T22:47:56Z",
+      "updatedAt": "2022-11-28T23:24:49Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "OWNER",
+          "body": "This is precisely why I enumerated specific fields and restricted the scheme to those fields. I think that restriction is important for security and interoperability, so I think we ought to close this and #3.",
+          "createdAt": "2022-11-28T23:24:49Z",
+          "updatedAt": "2022-11-28T23:24:49Z"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "id": "I_kwDOIeocT85Xc69Y",
+      "title": "conversion of Shamir Secret shares to additive secret sharing",
+      "url": "https://github.com/chris-wood/draft-wood-cfrg-threshold-secret-sharing/issues/5",
+      "state": "OPEN",
+      "author": "armfazh",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "We might consider to cover the conversion of Shamir Secret shares to shares of an additive secret sharing.\r\n\r\n(s1,...sN) -> (a1,..aN), such that  the secret is a1+...+aN.\r\n\r\nThis technique can be hinted to the reader without any actual enforcement to be implemented in document.",
+      "createdAt": "2022-11-28T22:52:00Z",
+      "updatedAt": "2022-11-28T23:45:54Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "OWNER",
+          "body": "Can you elaborate on this? I'm not sure how one converts shares to those that can be additively combined in this way.",
+          "createdAt": "2022-11-28T23:23:33Z",
+          "updatedAt": "2022-11-28T23:23:33Z"
+        },
+        {
+          "author": "armfazh",
+          "authorAssociation": "NONE",
+          "body": "See Section 3.2.7 of https://eprint.iacr.org/2020/1390\r\nor Section 2,2 of FROST paper (https://eprint.iacr.org/2020/852)",
+          "createdAt": "2022-11-28T23:26:58Z",
+          "updatedAt": "2022-11-28T23:26:58Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "OWNER",
+          "body": "Unless I'm misunderstanding something, those techniques are for converting _additive_ shares into _threshold_ shares, not the other way around.\r\n\r\nEdit: I haven't worked out the math, but I suppose one could invert the process based on a quick look. So, is there a use case worth mentioning this property? If not, I don't think we should add it.",
+          "createdAt": "2022-11-28T23:40:30Z",
+          "updatedAt": "2022-11-28T23:45:54Z"
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "id": "I_kwDOIeocT85Xc7kv",
+      "title": "secret generation",
+      "url": "https://github.com/chris-wood/draft-wood-cfrg-threshold-secret-sharing/issues/6",
+      "state": "OPEN",
+      "author": "armfazh",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "In some cases, the secrets are already generated by other means and not always freshly generated.\r\n\r\n```\r\nwe assume that secrets are sampled uniformly at random using\r\na cryptographically secure pseudorandom number generator (CSPRNG);\r\nsee RFC4086 for additional guidance on the generation of random numbers.\r\n```",
+      "createdAt": "2022-11-28T22:55:35Z",
+      "updatedAt": "2022-11-28T22:55:35Z",
+      "closedAt": null,
+      "comments": []
+    }
+  ],
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOIeocT85D1hjy",
+      "title": "Adopt new syntax",
+      "url": "https://github.com/chris-wood/draft-wood-cfrg-threshold-secret-sharing/pull/1",
+      "state": "MERGED",
+      "author": "chris-wood",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2022-11-28T20:53:54Z",
+      "updatedAt": "2022-11-28T20:53:59Z",
+      "baseRepository": "chris-wood/draft-wood-cfrg-threshold-secret-sharing",
+      "baseRefName": "main",
+      "baseRefOid": "0e13cfd8991d56ef9eff9491e7d68b8c57c8a237",
+      "headRepository": "chris-wood/draft-wood-cfrg-threshold-secret-sharing",
+      "headRefName": "caw/new-syntax",
+      "headRefOid": "103cce88f3a86502156c99d1240fb5cf8f8e69cc",
+      "closedAt": "2022-11-28T20:53:59Z",
+      "mergedAt": "2022-11-28T20:53:59Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "dbfd816346ddaeefd20e185e98f2e17b9af1e82d"
+      },
+      "comments": [],
+      "reviews": []
+    }
+  ]
 }
